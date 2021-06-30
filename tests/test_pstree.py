@@ -2,20 +2,28 @@
 
 """Tests for `pstree` package."""
 
+from numpy.testing import assert_almost_equal
+from sklearn.datasets import make_regression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.tree import DecisionTreeRegressor
 
-import unittest
-
-from pstree import pstree
+from pstree_core.pstree.cluster_gp_sklearn import TreeGPRegressor, GPRegressor
 
 
-class TestPstree(unittest.TestCase):
-    """Tests for `pstree` package."""
+def test_simple_data():
+    X, y = make_regression(n_samples=100, n_features=5, n_informative=5)
+    gp = TreeGPRegressor(regr_class=GPRegressor, tree_class=DecisionTreeRegressor,
+                         height_limit=6, n_pop=20, n_gen=2,
+                         min_samples_leaf=1, max_leaf_nodes=None,
+                         adaptive_tree=False, basic_primitive=False, size_objective=True)
+    gp.fit(X, y)
+    assert_almost_equal(mean_squared_error(y, gp.predict(X)), 0)
 
-    def setUp(self):
-        """Set up test fixtures, if any."""
 
-    def tearDown(self):
-        """Tear down test fixtures, if any."""
-
-    def test_000_something(self):
-        """Test something."""
+def test_adaptive_tree():
+    X, y = make_regression(n_samples=100, n_features=5, n_informative=5)
+    gp = TreeGPRegressor(regr_class=GPRegressor, tree_class=DecisionTreeRegressor,
+                         height_limit=6, n_pop=20, n_gen=5,
+                         adaptive_tree=True, basic_primitive=False, size_objective=True)
+    gp.fit(X, y)
+    assert r2_score(y, gp.predict(X)) > 0

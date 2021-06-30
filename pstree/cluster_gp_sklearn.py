@@ -39,9 +39,9 @@ from deap.base import Fitness
 from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
-from pstree_core.pstree.cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
+from .cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
     selBestSum, selMOEAD, selIBEA, c_deepcopy
-from pstree_core.pstree.gp_function import *
+from .gp_function import *
 from glmnet import ElasticNet
 
 
