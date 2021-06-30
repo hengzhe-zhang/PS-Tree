@@ -6,6 +6,7 @@ import warnings
 from collections import deque, defaultdict
 from itertools import compress
 import numpy
+import numpy as np
 import pyximport
 from deap.gp import Terminal
 from deap.tools import selNSGA2, selRandom, selSPEA2, selLexicase, selNSGA3
@@ -13,12 +14,13 @@ from icecream import ic
 from scipy.stats import pearsonr, PearsonRConstantInputWarning, PearsonRNearConstantInputWarning
 from sklearn.cluster import KMeans
 from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import BaggingRegressor
+from sklearn.ensemble import BaggingRegressor, RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LassoCV
 from sklearn.linear_model import Ridge, RidgeCV, ElasticNetCV
 from sklearn.linear_model._coordinate_descent import _alpha_grid, ElasticNet
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.model_selection import cross_validate
+from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
@@ -76,7 +78,8 @@ def train_normalization(func):
 
 def get_labels(tree, X, soft_tree=False):
     if isinstance(tree, DecisionTreeClassifier) or isinstance(tree, KMeans) or \
-        isinstance(tree, BayesianGaussianMixture):
+        isinstance(tree, BayesianGaussianMixture) or isinstance(tree, GaussianNB) \
+        or isinstance(tree, RandomForestClassifier):
         if soft_tree:
             if hasattr(tree, 'predict_proba'):
                 tree.labels_ = tree.predict_proba(X)
@@ -179,12 +182,13 @@ class GPRegressor(NormalizationRegressor):
                  survival_selection='NSGA2', feature_normalization=True, structure_diversity=True,
                  space_partition_fun=None, adaptive_tree=True, original_features=True,
                  new_surrogate_function=True, advanced_elimination=True, super_object=None, final_prune='Lasso',
-                 correlation_elimination=False, tree_shrinkage=False, size_objective=False, **params):
+                 correlation_elimination=False, tree_shrinkage=False, size_objective=True, soft_label=False, **params):
         """
         :param n_pop: size of population
         :param n_gen: number of generations
         """
         super().__init__(**params)
+        self.soft_label = soft_label
         self.average_size = sys.maxsize
         self.advanced_elimination = advanced_elimination
         self.new_surrogate_function = new_surrogate_function
@@ -406,17 +410,17 @@ class GPRegressor(NormalizationRegressor):
             if self.validation_selection:
                 # record the best individual in the training process
                 ridge: RidgeCV = pipe["Ridge"]
-                if len(self.category.shape) == 1:
-                    pipe.fit(features, Y_true)
-                else:
-                    weight = np.nan_to_num(self.category[:, i], posinf=0, neginf=0)
-                    try:
+                try:
+                    if len(self.category.shape) == 1:
+                        pipe.fit(features, Y_true)
+                    else:
+                        weight = np.nan_to_num(self.category[:, i], posinf=0, neginf=0)
                         pipe.fit(features, Y_true, Ridge__sample_weight=weight)
-                    except Exception as e:
-                        ic(features.shape, Y_true.shape, weight.shape, np.count_nonzero(weight))
-                        # not converge
-                        dummy_regressor_construction(features, Y_true)
-                        continue
+                except Exception as e:
+                    ic(e, features.shape, Y_true.shape)
+                    # not converge
+                    dummy_regressor_construction(features, Y_true)
+                    continue
                 if isinstance(ridge, RidgeCV):
                     if len(self.category.shape) == 1:
                         score += abs(len(Y_true) * ridge.best_score_)
@@ -465,17 +469,32 @@ class GPRegressor(NormalizationRegressor):
 
     def adaptive_tree_generation(self, all_features, pipelines):
         if self.adaptive_tree:
-            # assign data point to new partitions
-            label = np.zeros(len(self.Y))
-            best_fitness = np.full(len(self.Y), np.inf)
-            for i, p in enumerate(pipelines):
-                if self.original_features:
-                    loss = (p.predict(all_features[:, self.train_data.shape[1]:]) - self.Y) ** 2
-                else:
-                    loss = (p.predict(all_features) - self.Y) ** 2
-                label[loss < best_fitness] = i
-                best_fitness[loss < best_fitness] = loss[loss < best_fitness]
-            self.category, decision_tree = self.space_partition_fun(all_features, label)
+            if self.soft_label:
+                original_all_features = all_features
+                prob = softmax(np.array([(p.predict(all_features[:, self.train_data.shape[1]:])
+                                          - self.Y) ** 2 * -1 for p in pipelines]),
+                               axis=0)
+                sample = np.random.rand(len(pipelines), all_features.shape[0])
+                matrix = prob > sample
+                features = np.concatenate([all_features[s] for s in matrix], axis=0)
+                label = np.concatenate([np.full(np.sum(s == True), i) for i, s in enumerate(matrix)], axis=0)
+                all_features = features
+                _, decision_tree = self.space_partition_fun(all_features, label)
+                self.category = decision_tree.predict_proba(original_all_features)
+                # decision_tree.labels_ = self.category
+            else:
+                # assign data point to new partitions
+                label = np.zeros(len(self.Y))
+                best_fitness = np.full(len(self.Y), np.inf)
+                for i, p in enumerate(pipelines):
+                    # np.array([(p.predict(all_features[:, self.train_data.shape[1]:]) - self.Y) ** 2 for p in pipelines])
+                    if self.original_features:
+                        loss = (p.predict(all_features[:, self.train_data.shape[1]:]) - self.Y) ** 2
+                    else:
+                        loss = (p.predict(all_features) - self.Y) ** 2
+                    label[loss < best_fitness] = i
+                    best_fitness[loss < best_fitness] = loss[loss < best_fitness]
+                self.category, decision_tree = self.space_partition_fun(all_features, label)
 
     def statistic_fun(self, ind):
         # return loss and time
@@ -888,16 +907,6 @@ class PSTreeRegressor(NormalizationRegressor):
             # return self.tree.apply(X), self.tree
         elif self.tree_class == DecisionTreeClassifier:
             if self.restricted_classification_tree:
-                # if self.max_leaf_nodes > 1:
-                #     score = np.sum(cross_val_score(DecisionTreeClassifier(max_leaf_nodes=self.max_leaf_nodes), X, y))
-                #     if self.max_leaf_nodes > 2:
-                #         classifier = DecisionTreeClassifier(max_leaf_nodes=self.max_leaf_nodes - 1)
-                #     else:
-                #         classifier = DummyClassifier(strategy='most_frequent')
-                #     while np.sum(cross_val_score(classifier, X, y)) > score:
-                #         self.max_leaf_nodes -= 1
-                #         if self.max_leaf_nodes == 1:
-                #             break
                 self.tree = self.tree_class(
                     max_depth=self.max_depth,
                     min_samples_leaf=self.min_samples_leaf,
@@ -907,7 +916,8 @@ class PSTreeRegressor(NormalizationRegressor):
                 self.tree = self.tree_class(
                     max_depth=self.max_depth,
                     min_samples_leaf=self.min_samples_leaf,
-                    random_state=self.random_seed)
+                    random_state=self.random_seed,
+                    ccp_alpha=0.01)
         elif self.tree_class == DecisionTreeRegressor:
             self.tree = self.tree_class(
                 max_depth=self.max_depth,
@@ -919,6 +929,14 @@ class PSTreeRegressor(NormalizationRegressor):
         elif self.tree_class == BayesianGaussianMixture:
             self.tree = BayesianGaussianMixture(n_components=self.max_leaf_nodes, max_iter=1000,
                                                 random_state=self.random_seed)
+        elif self.tree_class == GaussianNB:
+            self.tree = GaussianNB()
+        elif self.tree_class == RandomForestClassifier:
+            self.tree = RandomForestClassifier(n_estimators=10,
+                                               max_depth=self.max_depth,
+                                               min_samples_leaf=self.min_samples_leaf,
+                                               max_leaf_nodes=self.max_leaf_nodes,
+                                               random_state=self.random_seed)
         else:
             raise Exception
 

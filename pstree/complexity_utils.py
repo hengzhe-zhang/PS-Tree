@@ -4,6 +4,8 @@ from .cluster_gp_sklearn import PseudoPartition
 
 
 def tree_gp_regressor_complexity(regr):
+    if not hasattr(regr.tree, 'tree_'):
+        return [], 0, 0, {'number_of_features': 0}
     # complexity induced by non-leaf nodes
     split_node_count = regr.tree.tree_.node_count - regr.tree.tree_.n_leaves
     total_complexity = split_node_count
