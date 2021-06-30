@@ -240,7 +240,7 @@ class GPRegressor(NormalizationRegressor):
         self.update_iteration = []
         self.current_gen = 0
         self.better_pop_flag = False
-        self.super_object: TreeGPRegressor = super_object
+        self.super_object: PSTreeRegressor = super_object
         self.last_loss = None
         self.final_prune = final_prune
         self.size_objective = size_objective
@@ -829,7 +829,7 @@ def diversity_measure(pop):
     return len(fit)
 
 
-class TreeGPRegressor(NormalizationRegressor):
+class PSTreeRegressor(NormalizationRegressor):
     def __init__(self, regr_class, tree_class, min_samples_leaf=1, max_depth=None, max_leaf_nodes=4, random_seed=0,
                  restricted_classification_tree=True, basic_primitive=False,
                  soft_tree=True, final_soft_tree=True, adaptive_tree=True, **params):
