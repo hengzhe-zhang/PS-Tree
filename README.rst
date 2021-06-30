@@ -33,6 +33,24 @@ Features
 * A fully automated piece-wise non-linear regression tool
 * A fast genetic programming based symbolic regression tool
 
+Example
+----------------
+An example of usage:
+
+.. code:: Python
+
+    X, y = load_diabetes(return_X_y=True)
+    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    r = TreeGPRegressor(regr_class=GPRegressor, tree_class=DecisionTreeRegressor,
+                        height_limit=6, n_pop=25, n_gen=100,
+                        basic_primitive=False, size_objective=True)
+    r.fit(x_train, y_train)
+    print(r2_score(y_test, r.predict(x_test)))
+
+Experimental results on SRBench:
+
+.. image:: https://raw.githubusercontent.com/zhenlingcn/PS-Tree/master/docs/R2-result.png
+
 Credits
 -------
 
