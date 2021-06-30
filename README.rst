@@ -1,6 +1,6 @@
-======
+==================
 PS-Tree
-======
+==================
 
 
 .. image:: https://img.shields.io/pypi/v/pstree.svg
@@ -23,12 +23,18 @@ An open source python library for non-linear piecewise symbolic regression based
 * Documentation: https://pstree.readthedocs.io.
 
 Introduction
---------
+----------------
 Piece-wise non-linear regression is a long-standing problem in the machine learning domain that has long plagued machine learning researchers. It is extremely difficult for users to determine the correct partition scheme and non-linear model when there is no prior information. To address this issue, we proposed piece-wise non-linear regression tree (PS-Tree), an automated piece-wise non-linear regression method based on decision tree and genetic programming techniques. Based on such an algorithm framework, our method can produce an explainable model with high accuracy in a short period of time.
 
+Installation
+----------------
+
+.. code:: bash
+
+    pip install -U evolutionary_forest
 
 Features
---------
+----------------
 
 * A fully automated piece-wise non-linear regression tool
 * A fast genetic programming based symbolic regression tool
@@ -52,7 +58,7 @@ Experimental results on SRBench:
 .. image:: https://raw.githubusercontent.com/zhenlingcn/PS-Tree/master/docs/R2-result.png
 
 Credits
--------
+--------------
 
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
