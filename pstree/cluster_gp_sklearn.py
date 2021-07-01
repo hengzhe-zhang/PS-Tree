@@ -2,11 +2,12 @@ import builtins
 import operator
 import sys
 import time
+import traceback
 import warnings
 from collections import deque, defaultdict
 from itertools import compress
+
 import numpy
-import numpy as np
 import pyximport
 from deap.gp import Terminal
 from deap.tools import selNSGA2, selRandom, selSPEA2, selLexicase, selNSGA3
@@ -417,6 +418,7 @@ class GPRegressor(NormalizationRegressor):
                         weight = np.nan_to_num(self.category[:, i], posinf=0, neginf=0)
                         pipe.fit(features, Y_true, Ridge__sample_weight=weight)
                 except Exception as e:
+                    traceback.print_exc()
                     ic(e, features.shape, Y_true.shape)
                     # not converge
                     dummy_regressor_construction(features, Y_true)
