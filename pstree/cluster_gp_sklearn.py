@@ -639,9 +639,14 @@ class GPRegressor(NormalizationRegressor):
 
     def moea(self, population, toolbox, cxpb, mutpb, ngen, stats=None,
              halloffame=None, verbose=__debug__, params=None):
-        if self.new_surrogate_function:
+        if self.new_surrogate_function is True:
             def individual_to_tuple(ind):
                 return tuple(self.feature_synthesis(self.train_data[:20], [ind]).flatten().tolist())
+        elif str(self.new_surrogate_function).startswith('First'):
+            sample_count = int(self.new_surrogate_function.split('-')[1])
+
+            def individual_to_tuple(ind):
+                return tuple(self.feature_synthesis(self.train_data[:sample_count], [ind]).flatten().tolist())
         else:
             individual_to_tuple = cluster_gp_tools.individual_to_tuple
 
