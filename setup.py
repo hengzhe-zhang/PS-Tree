@@ -10,7 +10,17 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = []
+requirements = [
+    'numpy',
+    'pandas',
+    'gplearn',
+    'scipy',
+    'deap',
+    'bluepyopt',
+    'glmnet',
+    'icecream',
+    'scikit-learn',
+]
 
 test_requirements = []
 

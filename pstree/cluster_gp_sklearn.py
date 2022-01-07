@@ -27,6 +27,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
 
 from . import cluster_gp_tools
+from .common_utils import reset_random, gene_to_string
 from .custom_sklearn_tools import LassoRidge, RFERegressor
 from .multigene_gp import *
 
@@ -860,8 +861,10 @@ def diversity_measure(pop):
 class PSTreeRegressor(NormalizationRegressor):
     def __init__(self, regr_class, tree_class, min_samples_leaf=1, max_depth=None, max_leaf_nodes=4, random_seed=0,
                  restricted_classification_tree=True, basic_primitive=False,
-                 soft_tree=True, final_soft_tree=True, adaptive_tree=True, **params):
+                 soft_tree=True, final_soft_tree=True, adaptive_tree=True, random_state=0, **params):
         super().__init__(**params)
+        self.random_state = random_state
+        reset_random(random_state)
         self.regr_class = regr_class
         self.tree_class = tree_class
         self.max_depth = max_depth
@@ -1031,6 +1034,21 @@ class PSTreeRegressor(NormalizationRegressor):
             **params
         }
         return params
+
+    def model(self, partition=0):
+        # return a sympy compatible string
+        ridge_model: RidgeCV = self.regr.pipelines[partition]
+        coef = ridge_model['Ridge'].coef_
+        bias = ridge_model['Ridge'].intercept_
+        code = ''
+        for a, b in enumerate(zip(self.regr.best_pop, coef)):
+            g, c = b
+            if c < 1e-10:
+                continue
+            code += f'{np.round(c, 5)}*({gene_to_string(g)})'
+            code += '+'
+        code += f'{np.round(bias, 5)}'
+        return code
 
 
 class SequentialTreeGPRegressor(NormalizationRegressor):
