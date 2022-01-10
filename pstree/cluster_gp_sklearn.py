@@ -674,7 +674,8 @@ class GPRegressor(NormalizationRegressor):
             log_dict.insert(ind_tuple, p.fitness.values)
         pop_size = len(population)
         # assigning the crowding distance to each individual
-        population = selNSGA2(population, pop_size)
+        if self.select == selTournamentDCD:
+            population = selNSGA2(population, pop_size)
 
         # Begin the generational process
         for gen in range(1, ngen + 1):
