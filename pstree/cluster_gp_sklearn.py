@@ -674,7 +674,7 @@ class GPRegressor(NormalizationRegressor):
             log_dict.insert(ind_tuple, p.fitness.values)
         pop_size = len(population)
         # assigning the crowding distance to each individual
-        if self.select == selTournamentDCD:
+        if self.select == selTournamentDCD and self.survival_selection == 'NSGA2':
             population = selNSGA2(population, pop_size)
 
         # Begin the generational process
@@ -1295,10 +1295,11 @@ def selTournamentDCD(individuals, k):
         elif ind2.fitness.dominates(ind1.fitness):
             return ind2
 
-        if ind1.fitness.crowding_dist < ind2.fitness.crowding_dist:
-            return ind2
-        elif ind1.fitness.crowding_dist > ind2.fitness.crowding_dist:
-            return ind1
+        if hasattr(ind1.fitness, 'crowding_dist') and hasattr(ind2.fitness, 'crowding_dist'):
+            if ind1.fitness.crowding_dist < ind2.fitness.crowding_dist:
+                return ind2
+            elif ind1.fitness.crowding_dist > ind2.fitness.crowding_dist:
+                return ind1
 
         if random.random() <= 0.5:
             return ind1
