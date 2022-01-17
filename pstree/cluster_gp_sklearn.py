@@ -18,7 +18,7 @@ from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import BaggingRegressor, RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LassoCV
 from sklearn.linear_model import Ridge, RidgeCV, ElasticNetCV
-from sklearn.linear_model._coordinate_descent import _alpha_grid, ElasticNet
+from sklearn.linear_model._coordinate_descent import _alpha_grid
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.model_selection import cross_validate
 from sklearn.naive_bayes import GaussianNB
@@ -184,12 +184,14 @@ class GPRegressor(NormalizationRegressor):
                  survival_selection='NSGA2', feature_normalization=True, structure_diversity=True,
                  space_partition_fun=None, adaptive_tree=True, original_features=True,
                  new_surrogate_function=True, advanced_elimination=True, super_object=None, final_prune='Lasso',
-                 correlation_elimination=False, tree_shrinkage=False, size_objective=True, soft_label=False, **params):
+                 correlation_elimination=False, tree_shrinkage=False, size_objective=True, soft_label=False,
+                 initial_height=None, **params):
         """
         :param n_pop: size of population
         :param n_gen: number of generations
         """
         super().__init__(**params)
+        self.initial_height = initial_height
         self.soft_label = soft_label
         self.average_size = sys.maxsize
         self.advanced_elimination = advanced_elimination
@@ -391,6 +393,8 @@ class GPRegressor(NormalizationRegressor):
 
             if final_model == 'Lasso':
                 ridge_model = get_lasso()
+            elif final_model == 'ElasticNet':
+                ridge_model = get_elastic_net(0.5)
             elif final_model == 'LassoRidge':
                 ridge_model = LassoRidge(get_lasso(), ridge_model)
             elif final_model == 'RFE':
@@ -596,16 +600,23 @@ class GPRegressor(NormalizationRegressor):
         self.toolbox = toolbox
 
         add_pset_function(pset, self.max_arity, self.basic_primitive)
-        if not hasattr(gp, 'rand101'):
-            if self.random_float:
-                pset.addEphemeralConstant("rand101", lambda: random.uniform(-self.constant_range, self.constant_range))
-            else:
-                pset.addEphemeralConstant("rand101", lambda: random.randint(-self.constant_range, self.constant_range))
+        if hasattr(gp, 'rand101'):
+            # delete existing constant generator
+            delattr(gp, 'rand101')
+        if self.random_float:
+            pset.addEphemeralConstant('rand101', lambda: random.uniform(-self.constant_range, self.constant_range))
+        else:
+            pset.addEphemeralConstant("rand101", lambda: random.randint(-self.constant_range, self.constant_range))
 
         creator.create("FitnessMin", FastMeasure, weights=tuple([1 for _ in range(self.category_num)]))
         creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMin)
 
-        toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=0, max_=2)
+        if self.initial_height is None:
+            toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=0, max_=2)
+        else:
+            a, b = self.initial_height.split('-')
+            a, b = int(a), int(b)
+            toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=a, max_=b)
         toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
         toolbox.register("compile", gp.compile, pset=pset)
@@ -865,7 +876,7 @@ class PSTreeRegressor(NormalizationRegressor):
                  soft_tree=True, final_soft_tree=True, adaptive_tree=True, random_state=0, **params):
         super().__init__(**params)
         self.random_state = random_state
-        reset_random(random_state)
+        # reset_random(random_state)
         self.regr_class = regr_class
         self.tree_class = tree_class
         self.max_depth = max_depth

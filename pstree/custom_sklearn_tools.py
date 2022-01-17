@@ -9,6 +9,9 @@ from .gp_function import max, min
 
 class LassoRidge():
     def __init__(self, lasso_model, ridge_model, *args, **kwargs):
+        """
+        Using Lasso to select useful variables, and using Ridge to fit the final model
+        """
         super().__init__(*args, **kwargs)
         self.lasso_model = lasso_model
         self.ridge_model = ridge_model
