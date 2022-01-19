@@ -96,7 +96,7 @@ class LexicaseHOF(HallOfFame):
         for index, x in enumerate(self):
             fitness_wvalues = np.array(x.fitness.wvalues)
             if np.any(fitness_wvalues >= max_hof) \
-                    and np.any(fitness_wvalues > max_value):
+                and np.any(fitness_wvalues > max_value):
                 loc = np.where(fitness_wvalues > max_value)
                 max_value[loc] = fitness_wvalues[loc]
                 continue

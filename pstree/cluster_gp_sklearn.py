@@ -16,7 +16,7 @@ from scipy.stats import pearsonr, PearsonRConstantInputWarning, PearsonRNearCons
 from sklearn.cluster import KMeans
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import BaggingRegressor, RandomForestClassifier
-from sklearn.linear_model import LinearRegression, LassoCV
+from sklearn.linear_model import LinearRegression, LassoCV, LogisticRegression
 from sklearn.linear_model import Ridge, RidgeCV, ElasticNetCV
 from sklearn.linear_model._coordinate_descent import _alpha_grid
 from sklearn.mixture import BayesianGaussianMixture
@@ -81,7 +81,7 @@ def train_normalization(func):
 def get_labels(tree, X, soft_tree=False):
     if isinstance(tree, DecisionTreeClassifier) or isinstance(tree, KMeans) or \
         isinstance(tree, BayesianGaussianMixture) or isinstance(tree, GaussianNB) \
-        or isinstance(tree, RandomForestClassifier):
+        or isinstance(tree, RandomForestClassifier) or isinstance(tree, LogisticRegression):
         if soft_tree:
             if hasattr(tree, 'predict_proba'):
                 tree.labels_ = tree.predict_proba(X)
@@ -895,28 +895,17 @@ class PSTreeRegressor(NormalizationRegressor):
         self.train_data = X
         self.train_label = y
         if self.min_samples_leaf in ['Auto', 'Auto-4', 'Auto-6', 'Auto-8']:
-            low_score = -np.inf
-            best_size = 0
-            for size in {
-                'Auto': reversed([50, 100, 150, 200]),
-                'Auto-4': reversed([25, 50, 100, 500]),
-                'Auto-6': reversed([50, 75, 100, 125, 150, 200]),
-                'Auto-8': reversed([25, 50, 75, 100, 125, 150, 200, 500]),
-            }[self.min_samples_leaf]:
-                dt = PiecewisePolynomialTree(min_samples_leaf=size)
-                score = cross_validate(dt, X, y, scoring='neg_mean_squared_error', cv=10,
-                                       return_train_score=True)
-                mean_score = np.median(score['test_score'])
-                if mean_score > low_score:
-                    low_score = mean_score
-                    best_size = size
+            best_size = automatically_determine_best_size(X, y, self.min_samples_leaf)
             self.min_samples_leaf = best_size
         if type(self.min_samples_leaf) is str:
             raise Exception
 
         category, _ = self.space_partition(X, y)
-        if self.adaptive_tree:
+        if self.adaptive_tree is True:
             self.tree_class = DecisionTreeClassifier
+        if self.adaptive_tree == 'Soft':
+            self.tree_class = LogisticRegression
+
         self.regr: GPRegressor = self.regr_class(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf,
                                                  space_partition_fun=self.space_partition,
                                                  basic_primitive=self.basic_primitive, soft_tree=self.soft_tree,
@@ -942,6 +931,10 @@ class PSTreeRegressor(NormalizationRegressor):
                     min_samples_leaf=self.min_samples_leaf,
                     random_state=self.random_seed,
                     ccp_alpha=0.01)
+        elif self.tree_class == LogisticRegression:
+            self.tree = LogisticRegression(
+                solver='liblinear'
+            )
         elif self.tree_class == DecisionTreeRegressor:
             self.tree = self.tree_class(
                 max_depth=self.max_depth,
@@ -1237,6 +1230,10 @@ class PseudoPartition(BaseEstimator):
 
 
 class PiecewisePolynomialTree(BaseEstimator):
+    """
+    This is a simple PL-Tree which could be used for determine the best partition number
+    """
+
     def __init__(self, min_samples_leaf=None, **param):
         self.label_model = defaultdict()
         self.min_samples_leaf = min_samples_leaf
@@ -1248,7 +1245,7 @@ class PiecewisePolynomialTree(BaseEstimator):
         # X = PolynomialFeatures(degree=2).fit_transform(X)
         for l in np.unique(labels):
             index = labels == l
-            lr = Ridge(alpha=1e-3)
+            lr = RidgeCV(np.logspace(0, 4))
             lr.fit(X[index], y[index])
             self.label_model[l] = lr
 
@@ -1322,3 +1319,26 @@ def selTournamentDCD(individuals, k):
         chosen.append(tourn(individuals_sample[0], individuals_sample[1]))
         chosen.append(tourn(individuals_sample[2], individuals_sample[3]))
     return chosen
+
+
+def automatically_determine_best_size(X, y, min_samples_leaf):
+    """
+    Automatically determine the best tree size
+    """
+    low_score = -np.inf
+    best_size = 0
+    for size in {
+        'Auto': reversed([50, 100, 150, 200]),
+        'Auto-4': reversed([25, 50, 100, 500]),
+        'Auto-6': reversed([50, 75, 100, 125, 150, 200]),
+        'Auto-8': reversed([25, 50, 75, 100, 125, 150, 200, 500]),
+    }[min_samples_leaf]:
+        dt = PiecewisePolynomialTree(min_samples_leaf=size)
+        score = cross_validate(dt, X, y, scoring='neg_mean_squared_error', cv=5,
+                               return_train_score=True)
+        mean_score = np.mean(score['test_score'])
+        if mean_score > low_score:
+            # current score is better
+            low_score = mean_score
+            best_size = size
+    return best_size
