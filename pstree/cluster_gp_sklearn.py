@@ -17,7 +17,7 @@ from sklearn.cluster import KMeans
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import BaggingRegressor, RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LassoCV, LogisticRegression
-from sklearn.linear_model import Ridge, RidgeCV, ElasticNetCV
+from sklearn.linear_model import RidgeCV, ElasticNetCV
 from sklearn.linear_model._coordinate_descent import _alpha_grid
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.model_selection import cross_validate
@@ -25,9 +25,11 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
+from sympy import parse_expr, Piecewise
 
+from .gp_visualization_utils import multigene_gp_to_string
 from . import cluster_gp_tools
-from .common_utils import reset_random, gene_to_string
+from .common_utils import gene_to_string
 from .custom_sklearn_tools import LassoRidge, RFERegressor
 from .multigene_gp import *
 
@@ -41,7 +43,7 @@ from deap import creator, base, tools, gp
 from deap.algorithms import varAnd
 from deap.base import Fitness
 from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, _tree
 
 from .cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
     selBestSum, selMOEAD, selIBEA, c_deepcopy
@@ -871,9 +873,17 @@ def diversity_measure(pop):
 
 
 class PSTreeRegressor(NormalizationRegressor):
+    """
+    An upper-level class for PS-Tree
+    """
+
     def __init__(self, regr_class, tree_class, min_samples_leaf=1, max_depth=None, max_leaf_nodes=4, random_seed=0,
                  restricted_classification_tree=True, basic_primitive=False,
                  soft_tree=True, final_soft_tree=True, adaptive_tree=True, random_state=0, **params):
+        """
+        regr_class: the class name for base learner
+        tree_class: the class name for the upper-level decision tree
+        """
         super().__init__(**params)
         self.random_state = random_state
         # reset_random(random_state)
@@ -1041,19 +1051,53 @@ class PSTreeRegressor(NormalizationRegressor):
         return params
 
     def model(self, partition=0):
-        # return a sympy compatible string
-        ridge_model: RidgeCV = self.regr.pipelines[partition]
-        coef = ridge_model['Ridge'].coef_
-        bias = ridge_model['Ridge'].intercept_
-        code = ''
-        for a, b in enumerate(zip(self.regr.best_pop, coef)):
-            g, c = b
-            if c < 1e-10:
-                continue
-            code += f'{np.round(c, 5)}*({gene_to_string(g)})'
-            code += '+'
-        code += f'{np.round(bias, 5)}'
-        return code
+        features = []
+        for id in range(self.regr.train_data.shape[1]):
+            features.append(parse_expr(f'X{id}'))
+        for p in self.regr.best_pop:
+            features.append(parse_expr(gene_to_string(p)))
+
+        regr, feature_names = self, [f'X{id}' for id in range(self.regr.train_data.shape[1] + len(self.regr.best_pop))]
+        tree_ = regr.tree.tree_
+        feature_name = [feature_names[i]
+                        if i != _tree.TREE_UNDEFINED else "undefined!"
+                        for i in tree_.feature]
+
+        all_expressions = []
+        all_conditions = []
+
+        def recurse(node):
+            if tree_.feature[node] != _tree.TREE_UNDEFINED:
+                name = feature_name[node]
+                index = int(name.replace('X', ''))
+                name = features[index]
+                threshold = tree_.threshold[node]
+
+                node_condition = f'({name} <= {threshold})'
+                all_conditions.append(node_condition)
+                recurse(tree_.children_left[node])
+                all_conditions.pop(-1)
+
+                node_condition = f'({name} > {threshold})'
+                all_conditions.append(node_condition)
+                recurse(tree_.children_right[node])
+                all_conditions.pop(-1)
+            else:
+                tree_values = tree_.value[node][0]
+                tree_values = tree_values / tree_values.sum()
+                print(node)
+                expr = None
+                for i in range(len(regr.regr.pipelines)):
+                    ex1 = multigene_gp_to_string(i, regr.regr)
+                    if expr is None:
+                        expr = tree_values[i] * ex1
+                    else:
+                        expr += tree_values[i] * ex1
+                condition = '&'.join(all_conditions)
+                all_expressions.append((expr, parse_expr(condition)))
+
+        recurse(0)
+        return Piecewise(*tuple(all_expressions))
 
 
 class SequentialTreeGPRegressor(NormalizationRegressor):
