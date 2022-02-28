@@ -1063,6 +1063,10 @@ class PSTreeRegressor(NormalizationRegressor):
                         if i != _tree.TREE_UNDEFINED else "undefined!"
                         for i in tree_.feature]
 
+        if regr.tree.tree_.node_count==1:
+            # single model
+            return srepr(multigene_gp_to_string(0, regr.regr))
+
         all_expressions = []
         all_conditions = []
 
