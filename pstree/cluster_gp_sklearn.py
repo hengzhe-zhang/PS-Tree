@@ -25,7 +25,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
-from sympy import parse_expr, Piecewise
+from sympy import parse_expr, Piecewise, srepr
 
 from .gp_visualization_utils import multigene_gp_to_string
 from . import cluster_gp_tools
@@ -1085,7 +1085,7 @@ class PSTreeRegressor(NormalizationRegressor):
             else:
                 tree_values = tree_.value[node][0]
                 tree_values = tree_values / tree_values.sum()
-                print(node)
+                # print(node)
                 expr = None
                 for i in range(len(regr.regr.pipelines)):
                     ex1 = multigene_gp_to_string(i, regr.regr)
@@ -1097,7 +1097,7 @@ class PSTreeRegressor(NormalizationRegressor):
                 all_expressions.append((expr, parse_expr(condition)))
 
         recurse(0)
-        return Piecewise(*tuple(all_expressions))
+        return srepr(Piecewise(*tuple(all_expressions)))
 
 
 class SequentialTreeGPRegressor(NormalizationRegressor):
