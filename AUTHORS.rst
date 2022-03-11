@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Hengzhe Zhang <zhenlingcn@foxmail.com>
+* Hengzhe Zhang <zhenglingcn@foxmail.com>
 
 Contributors
 ------------

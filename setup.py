@@ -26,7 +26,7 @@ test_requirements = []
 
 setup(
     author="Hengzhe Zhang",
-    author_email='zhenlingcn@foxmail.com',
+    author_email='zhenglingcn@foxmail.com',
     python_requires='>=3.6',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -48,7 +48,7 @@ setup(
     packages=find_packages(include=['pstree', 'pstree.*']),
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/zhenlingcn/pstree',
+    url='https://github.com/hengzhe-zhang/pstree',
     version='0.1.0',
     zip_safe=False,
 )
