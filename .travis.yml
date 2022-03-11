@@ -19,10 +19,10 @@ script: tox
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
-  user: zhenlingcn
+  user: hengzhe-zhang
   password:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: zhenlingcn/pstree
+    repo: hengzhe-zhang/pstree
     python: 3.8
