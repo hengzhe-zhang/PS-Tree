@@ -7,7 +7,7 @@ from math import isclose
 
 from bluepyopt.deapext.tools.selIBEA import _calc_fitness_components, _calc_fitnesses, _environmental_selection
 from deap.tools import HallOfFame, selRandom, selTournament
-from gplearn.functions import _protected_sqrt, _sigmoid
+from gplearn.functions import _protected_sqrt
 from scipy.special import softmax
 
 from .gp_function import *
@@ -49,15 +49,21 @@ def add_pset_function(pset, max_arity, basic_primitive):
         add_function(sub, i)
 
     # advanced primitives
-    if (basic_primitive == False or basic_primitive == 'more'):
+    if basic_primitive == 'optimal':
+        add_function(np.sin, 1)
+        add_function(np.tanh, 1)
+
+    if basic_primitive == False or basic_primitive in ['abs-sqrt', 'min-max']:
         add_function(np.sin, 1)
         add_function(np.cos, 1)
-        if basic_primitive == 'more':
-            add_function(np.maximum, 2)
-            add_function(np.minimum, 2)
-            add_function(np.abs, 1)
-            add_function(_protected_sqrt, 1)
-            add_function(_sigmoid, 1)
+
+    if basic_primitive in ['abs-sqrt', 'min-max']:
+        add_function(np.maximum, 2)
+        add_function(np.minimum, 2)
+
+    if basic_primitive == 'abs-sqrt':
+        add_function(np.abs, 1)
+        add_function(_protected_sqrt, 1)
 
 
 class LexicaseHOF(HallOfFame):
@@ -167,8 +173,30 @@ def individual_to_tuple(ind):
         arr.append(x.name)
     return tuple(arr)
 
+def selTournamentDCDSimple(individuals, k):
+    """
+    A simplified version of the tournament selection operator based on dominance
+    """
+
+    def tourn(ind1, ind2):
+        if ind1.fitness.dominates(ind2.fitness):
+            return ind1
+        elif ind2.fitness.dominates(ind1.fitness):
+            return ind2
+
+        if random.random() <= 0.5:
+            return ind1
+        return ind2
+
+    chosen = []
+    for i in range(0, k, 2):
+        individuals_sample = random.sample(individuals, 4)
+        chosen.append(tourn(individuals_sample[0], individuals_sample[1]))
+        chosen.append(tourn(individuals_sample[2], individuals_sample[3]))
+    return chosen
 
 def remove_duplicate_fitness(candidates):
+    # remove duplicated individuals
     final_candidates = []
     fitness_set = set()
     for c in candidates:

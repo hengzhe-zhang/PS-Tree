@@ -27,10 +27,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
 from sympy import parse_expr, Piecewise, srepr
 
-from .gp_visualization_utils import multigene_gp_to_string
 from . import cluster_gp_tools
 from .common_utils import gene_to_string
 from .custom_sklearn_tools import LassoRidge, RFERegressor
+from .gp_visualization_utils import multigene_gp_to_string
 from .multigene_gp import *
 
 warnings.simplefilter("ignore", category=PearsonRConstantInputWarning)
@@ -105,6 +105,8 @@ def predict_normalization(func):
             X = self.x_scaler.transform(X)
         y_predict = func(self, X, y, *param, **dict_param)
         if self.normalize:
+            y_predict = np.reshape(y_predict, (-1, 1))
+            assert len(y_predict) == len(X)
             y_predict = self.y_scaler.inverse_transform(y_predict)
         return y_predict
 
@@ -886,7 +888,7 @@ class PSTreeRegressor(NormalizationRegressor):
         """
         super().__init__(**params)
         self.random_state = random_state
-        # reset_random(random_state)
+        # reset_random(int(time.time()))
         self.regr_class = regr_class
         self.tree_class = tree_class
         self.max_depth = max_depth
@@ -1063,7 +1065,7 @@ class PSTreeRegressor(NormalizationRegressor):
                         if i != _tree.TREE_UNDEFINED else "undefined!"
                         for i in tree_.feature]
 
-        if regr.tree.tree_.node_count==1:
+        if regr.tree.tree_.node_count == 1:
             # single model
             return srepr(multigene_gp_to_string(0, regr.regr))
 
