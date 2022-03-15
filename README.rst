@@ -6,8 +6,8 @@ PS-Tree
 .. image:: https://img.shields.io/pypi/v/pstree.svg
         :target: https://pypi.python.org/pypi/pstree
 
-.. image:: https://img.shields.io/travis/zhenlingcn/pstree.svg
-        :target: https://travis-ci.com/zhenlingcn/pstree
+.. image:: https://img.shields.io/travis/hengzhe-zhang/pstree.svg
+        :target: https://travis-ci.com/hengzhe-zhang/pstree
 
 .. image:: https://readthedocs.org/projects/pstree/badge/?version=latest
         :target: https://pstree.readthedocs.io/en/latest/?version=latest
@@ -55,7 +55,7 @@ An example of usage:
 
 Experimental results on SRBench:
 
-.. image:: https://raw.githubusercontent.com/zhenlingcn/PS-Tree/master/docs/R2-result.png
+.. image:: https://raw.githubusercontent.com/hengzhe-zhang/PS-Tree/master/docs/R2-result.png
 
 Credits
 --------------

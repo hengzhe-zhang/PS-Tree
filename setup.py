@@ -48,7 +48,7 @@ setup(
     packages=find_packages(include=['pstree', 'pstree.*']),
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/zhenlingcn/pstree',
+    url='https://github.com/hengzhe-zhang/pstree',
     version='0.1.0',
     zip_safe=False,
 )
