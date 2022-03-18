@@ -17,6 +17,14 @@ def c_deepcopy(a):
     return deepcopy(a)
 
 
+def analytical_loge(x):
+    return np.log(1 + abs(x))
+
+
+def protected_sqrt(x):
+    return np.sqrt(np.abs(x))
+
+
 def add_pset_function(pset, max_arity, basic_primitive):
     if hasattr(pset, 'add_function'):
         add_function: Callable = pset.add_function
@@ -64,6 +72,16 @@ def add_pset_function(pset, max_arity, basic_primitive):
     if basic_primitive == 'abs-sqrt':
         add_function(np.abs, 1)
         add_function(_protected_sqrt, 1)
+
+    if isinstance(basic_primitive, str) and ',' in basic_primitive:
+        for p in basic_primitive.split(','):
+            func = {
+                'log': analytical_loge,
+                'sqrt': protected_sqrt,
+                'sin': np.sin,
+                'tanh': np.tanh,
+            }[p]
+            add_function(func, 1)
 
 
 class LexicaseHOF(HallOfFame):
@@ -173,6 +191,7 @@ def individual_to_tuple(ind):
         arr.append(x.name)
     return tuple(arr)
 
+
 def selTournamentDCDSimple(individuals, k):
     """
     A simplified version of the tournament selection operator based on dominance
@@ -194,6 +213,7 @@ def selTournamentDCDSimple(individuals, k):
         chosen.append(tourn(individuals_sample[0], individuals_sample[1]))
         chosen.append(tourn(individuals_sample[2], individuals_sample[3]))
     return chosen
+
 
 def remove_duplicate_fitness(candidates):
     # remove duplicated individuals

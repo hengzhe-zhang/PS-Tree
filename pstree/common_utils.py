@@ -30,7 +30,7 @@ def gene_to_string(gene):
                     string += f'{args[0]}/sqrt(1+{args[1]}*{args[1]})'
                 elif prim.name == 'analytical_loge':
                     string += f'log(1+Abs({args[0]}))'
-                elif prim.name == 'protect_sqrt':
+                elif prim.name == 'protected_sqrt':
                     string += f'sqrt(Abs({args[0]}))'
                 elif prim.name == 'maximum':
                     string += f'Max({args[0]}, {args[1]})'

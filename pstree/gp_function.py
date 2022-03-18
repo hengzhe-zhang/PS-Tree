@@ -65,10 +65,5 @@ def analytical_quotient(x1, x2):
     return x1 / np.sqrt(1 + x2 ** 2)
 
 
-def protect_loge(x1):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return np.where(np.abs(x1) > threshold, np.log(np.abs(x1)), 0.)
-
-
 def protect_sqrt(a):
     return np.sqrt(np.abs(a))
