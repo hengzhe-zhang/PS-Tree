@@ -49,7 +49,7 @@ An example of usage:
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
     r = PSTreeRegressor(regr_class=GPRegressor, tree_class=DecisionTreeRegressor,
                         height_limit=6, n_pop=25, n_gen=100,
-                        basic_primitive=False, size_objective=True)
+                        basic_primitive='optimal', size_objective=True)
     r.fit(x_train, y_train)
     print(r2_score(y_test, r.predict(x_test)))
 

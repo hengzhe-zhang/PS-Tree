@@ -880,7 +880,7 @@ class PSTreeRegressor(NormalizationRegressor):
     """
 
     def __init__(self, regr_class, tree_class, min_samples_leaf=1, max_depth=None, max_leaf_nodes=4, random_seed=0,
-                 restricted_classification_tree=True, basic_primitive=False,
+                 restricted_classification_tree=True, basic_primitive='optimal',
                  soft_tree=True, final_soft_tree=True, adaptive_tree=True, random_state=0, **params):
         """
         regr_class: the class name for base learner
