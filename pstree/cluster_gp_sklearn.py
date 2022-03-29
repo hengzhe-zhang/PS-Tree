@@ -28,7 +28,7 @@ from sklearn.svm import LinearSVR
 from sympy import parse_expr, Piecewise, srepr
 
 from . import cluster_gp_tools
-from .common_utils import gene_to_string
+from .common_utils import gene_to_string, reset_random
 from .custom_sklearn_tools import LassoRidge, RFERegressor
 from .gp_visualization_utils import multigene_gp_to_string
 from .multigene_gp import *
@@ -366,21 +366,18 @@ class GPRegressor(NormalizationRegressor):
             # warnings.simplefilter("ignore", category=ConvergenceWarning)
 
             def get_lasso():
-                # if len(self.category.shape) == 1:
-                #     ridge_model = LassoCV(max_iter=100000)
-                # else:
                 alphas = _alpha_grid(features, Y_true, normalize=True)
-                ridge_model = ElasticNet(alpha=1, lambda_path=alphas, n_splits=5, tol=1e-4)
+                ridge_model = ElasticNet(alpha=1, lambda_path=alphas, n_splits=5, tol=1e-4,
+                                         random_state=0)
                 return ridge_model
 
             def get_elastic_net(ratio):
-                # if len(self.category.shape) == 1:
-                #     ridge_model = ElasticNetCV(l1_ratio=ratio, max_iter=100000)
-                # else:
                 alphas = _alpha_grid(features, Y_true, l1_ratio=ratio, normalize=True)
-                ridge_model = ElasticNet(alpha=ratio, lambda_path=alphas, n_splits=5, tol=1e-4)
+                ridge_model = ElasticNet(alpha=ratio, lambda_path=alphas, n_splits=5, tol=1e-4,
+                                         random_state=0)
                 return ridge_model
 
+            # determine the evaluation model
             if self.ridge_alpha == 'Lasso':
                 ridge_model = get_lasso()
             elif self.ridge_alpha == 'Linear':
@@ -393,9 +390,12 @@ class GPRegressor(NormalizationRegressor):
             elif self.ridge_alpha == 'EnsembleRidge':
                 ridge_model = EnsembleRidge(np.logspace(0, 4))
             else:
+                # default use this option
                 ridge_model = RidgeCV(alphas=eval(self.ridge_alpha))
 
+            # determine the final model
             if final_model == 'Lasso':
+                # default use this option
                 ridge_model = get_lasso()
             elif final_model == 'ElasticNet':
                 ridge_model = get_elastic_net(0.5)
@@ -403,8 +403,6 @@ class GPRegressor(NormalizationRegressor):
                 ridge_model = LassoRidge(get_lasso(), ridge_model)
             elif final_model == 'RFE':
                 ridge_model = RFERegressor(get_lasso(), n_features_to_select=10, step=5)
-            # elif final_model == 'Ridge':
-            #     ridge_model = RidgeCV(alphas=np.logspace(-4, 4))
 
             if self.feature_normalization:
                 steps = [
@@ -888,7 +886,7 @@ class PSTreeRegressor(NormalizationRegressor):
         """
         super().__init__(**params)
         self.random_state = random_state
-        # reset_random(int(time.time()))
+        reset_random(self.random_state)
         self.regr_class = regr_class
         self.tree_class = tree_class
         self.max_depth = max_depth

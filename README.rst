@@ -31,7 +31,7 @@ Installation
 
 .. code:: bash
 
-    pip install -U evolutionary_forest
+    pip install -U pstree
 
 Features
 ----------------
