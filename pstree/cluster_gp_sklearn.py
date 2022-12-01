@@ -3,16 +3,15 @@ import operator
 import sys
 import time
 import traceback
-import warnings
 from collections import deque, defaultdict
 from itertools import compress
 
 import numpy
 import pyximport
-from deap.gp import Terminal
+from deap.gp import Terminal, Ephemeral
 from deap.tools import selNSGA2, selRandom, selSPEA2, selLexicase, selNSGA3
 from icecream import ic
-from scipy.stats import pearsonr, PearsonRConstantInputWarning, PearsonRNearConstantInputWarning
+from scipy.stats import pearsonr
 from sklearn.cluster import KMeans
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import BaggingRegressor, RandomForestClassifier
@@ -32,10 +31,6 @@ from .common_utils import gene_to_string, reset_random
 from .custom_sklearn_tools import LassoRidge, RFERegressor
 from .gp_visualization_utils import multigene_gp_to_string
 from .multigene_gp import *
-
-warnings.simplefilter("ignore", category=PearsonRConstantInputWarning)
-warnings.simplefilter("ignore", category=PearsonRNearConstantInputWarning)
-# warnings.simplefilter("ignore", category=RuntimeWarning)
 
 pyximport.install(setup_args={"include_dirs": numpy.get_include()})
 
@@ -178,6 +173,33 @@ class EnsembleRidge(RidgeCV):
         return self.model.predict(X)
 
 
+def get_terminal_order(node, context=None):
+    if isinstance(node, gp.Ephemeral) or isinstance(node.value, float) \
+        or isinstance(node.value, int) or context is not None and node.value in context:
+        return 0
+    return 1
+
+
+def calculate_order(ind, context=None):
+    # calculate the complexity of model as a regularization term
+    order_stack = []
+    for node in reversed(ind):
+        if isinstance(node, gp.Terminal):
+            terminal_order = get_terminal_order(node, context)
+            order_stack.append(terminal_order)
+        elif node.arity == 1:
+            # sin, cos, tanh
+            arg_order = order_stack.pop()
+            order_stack.append(2 * arg_order)
+        else:  # node.arity == 2:
+            args_order = [order_stack.pop() for _ in range(node.arity)]
+            if node.name.startswith('add') or node.name.startswith('sub'):
+                order_stack.append(max(args_order))
+            else:
+                order_stack.append(sum(args_order))
+    return order_stack.pop()
+
+
 class GPRegressor(NormalizationRegressor):
     def __init__(self, input_names=None, n_pop=50, n_gen=200, max_arity=2, height_limit=6, constant_range=2,
                  cross_rate=0.9, mutate_rate=0.1, verbose=False, basic_primitive=True, gene_num=1, random_float=False,
@@ -189,7 +211,7 @@ class GPRegressor(NormalizationRegressor):
                  space_partition_fun=None, adaptive_tree=True, original_features=True,
                  new_surrogate_function=True, advanced_elimination=True, super_object=None, final_prune='Lasso',
                  correlation_elimination=False, tree_shrinkage=False, size_objective=True, soft_label=False,
-                 initial_height=None, **params):
+                 initial_height=None, afp=False, complexity_measure=False, parsimonious_variable=False, **params):
         """
         :param n_pop: size of population
         :param n_gen: number of generations
@@ -207,6 +229,9 @@ class GPRegressor(NormalizationRegressor):
         self.score_function = score_function
         self.regression_type = regression_type
         self.regression_regularization = regression_regularization
+        self.afp = afp
+        self.complexity_measure = complexity_measure
+        self.parsimonious_variable = parsimonious_variable
         if hasattr(creator, 'FitnessMin'):
             del creator.FitnessMin
         if hasattr(creator, 'Individual'):
@@ -297,15 +322,29 @@ class GPRegressor(NormalizationRegressor):
         fitness_dimension = len(pipelines)
 
         for i, ind in enumerate(individuals):
+            target_dimension = fitness_dimension
+            fitness_values = tuple(np.abs(fitness[:, i]))
             if self.size_objective:
-                target_dimension = fitness_dimension + 1
-                ind.fitness.weights = tuple([1 for _ in range(target_dimension)])
-                ind.fitness.values = tuple(np.abs(fitness[:, i])) + \
-                                     (-0.01 * max(len(ind), self.average_size) / self.average_size,)
-            else:
-                target_dimension = fitness_dimension
-                ind.fitness.weights = tuple([1 for _ in range(target_dimension)])
-                ind.fitness.values = tuple(np.abs(fitness[:, i]))
+                target_dimension += 1
+                fitness_values = fitness_values + \
+                                 (-0.01 * max(len(ind), self.average_size) / self.average_size,)
+            if self.afp:
+                target_dimension += 1
+                fitness_values = fitness_values + (ind.age,)
+                ind.age -= 1
+
+            if self.complexity_measure:
+                target_dimension += 1
+                fitness_values = fitness_values + (-1 * calculate_order(ind),)
+
+            if self.parsimonious_variable:
+                target_dimension += 1
+                variable_length = len(set(map(lambda x: x.name,
+                                              filter(lambda x: isinstance(x, Terminal) and
+                                                           not isinstance(x, Ephemeral), ind))))
+                fitness_values = fitness_values + (-1 * variable_length,)
+            ind.fitness.weights = tuple([1 for _ in range(target_dimension)])
+            ind.fitness.values = fitness_values
             assert len(ind.fitness.values) == target_dimension
             assert len(ind.fitness.wvalues) == target_dimension
         return tuple(fitness)
@@ -477,6 +516,7 @@ class GPRegressor(NormalizationRegressor):
         return all_features
 
     def adaptive_tree_generation(self, all_features, pipelines):
+        # adaptively generate new partition scheme
         if self.adaptive_tree:
             if self.soft_label:
                 original_all_features = all_features
@@ -610,8 +650,9 @@ class GPRegressor(NormalizationRegressor):
         else:
             pset.addEphemeralConstant("rand101", lambda: random.randint(-self.constant_range, self.constant_range))
 
-        creator.create("FitnessMin", FastMeasure, weights=tuple([1 for _ in range(self.category_num)]))
-        creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMin)
+        number_of_objective = self.category_num
+        creator.create("FitnessMin", FastMeasure, weights=tuple([1 for _ in range(number_of_objective)]))
+        creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMin, age=0)
 
         if self.initial_height is None:
             toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=0, max_=2)
@@ -739,6 +780,11 @@ class GPRegressor(NormalizationRegressor):
                 offspring = varAnd(offspring, toolbox, cxpb, mutpb)
             assert len(offspring) == pop_size, print(len(offspring), pop_size)
             self.average_size = np.mean([len(p) for p in population])
+
+            if self.afp:
+                # reset the age of new individuals
+                for o in offspring:
+                    o.age = 0
 
             # Evaluate the individuals with an invalid fitness
             if self.correlation_elimination:
