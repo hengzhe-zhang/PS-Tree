@@ -1,6 +1,6 @@
 import numpy as np
 
-from .cluster_gp_sklearn import PseudoPartition
+from pstree.cluster_gp_sklearn import PseudoPartition
 
 
 def tree_gp_regressor_complexity(regr):

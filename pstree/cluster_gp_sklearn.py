@@ -6,12 +6,16 @@ import traceback
 from collections import deque, defaultdict
 from itertools import compress
 
-import numpy
 import pyximport
+from deap import creator, base, tools, gp
+from deap.algorithms import varAnd
+from deap.base import Fitness
 from deap.gp import Terminal, Ephemeral
 from deap.tools import selNSGA2, selRandom, selSPEA2, selLexicase, selNSGA3
+from glmnet import ElasticNet
 from icecream import ic
 from scipy.stats import pearsonr
+from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
 from sklearn.cluster import KMeans
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import BaggingRegressor, RandomForestClassifier
@@ -24,26 +28,18 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, _tree
 from sympy import parse_expr, Piecewise, srepr
 
-from . import cluster_gp_tools
-from .common_utils import gene_to_string, reset_random
-from .custom_sklearn_tools import LassoRidge, RFERegressor
-from .gp_visualization_utils import multigene_gp_to_string
-from .multigene_gp import *
-
-pyximport.install(setup_args={"include_dirs": numpy.get_include()})
-
-from deap import creator, base, tools, gp
-from deap.algorithms import varAnd
-from deap.base import Fitness
-from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, _tree
-
-from .cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
+from pstree.cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
     selBestSum, selMOEAD, selIBEA, c_deepcopy
-from .gp_function import *
-from glmnet import ElasticNet
+from pstree.common_utils import gene_to_string, reset_random
+from pstree.custom_sklearn_tools import LassoRidge, RFERegressor
+from pstree.gp_function import *
+from pstree.gp_visualization_utils import multigene_gp_to_string
+from pstree.multigene_gp import *
+
+pyximport.install(setup_args={"include_dirs": np.get_include()})
 
 
 class FeatureTransformer(TransformerMixin, BaseEstimator):
@@ -341,7 +337,7 @@ class GPRegressor(NormalizationRegressor):
                 target_dimension += 1
                 variable_length = len(set(map(lambda x: x.name,
                                               filter(lambda x: isinstance(x, Terminal) and
-                                                           not isinstance(x, Ephemeral), ind))))
+                                                               not isinstance(x, Ephemeral), ind))))
                 fitness_values = fitness_values + (-1 * variable_length,)
             ind.fitness.weights = tuple([1 for _ in range(target_dimension)])
             ind.fitness.values = fitness_values
