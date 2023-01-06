@@ -10,7 +10,7 @@ from deap.tools import HallOfFame, selRandom, selTournament
 from gplearn.functions import _protected_sqrt
 from scipy.special import softmax
 
-from .gp_function import *
+from pstree.gp_function import *
 
 
 def c_deepcopy(a):

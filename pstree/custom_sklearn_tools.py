@@ -4,7 +4,7 @@ from sklearn.feature_selection import SelectFromModel, RFE
 from sklearn.pipeline import Pipeline
 from sklearn.utils import safe_sqr
 
-from .gp_function import max, min
+from pstree.gp_function import max, min
 
 
 class LassoRidge():
