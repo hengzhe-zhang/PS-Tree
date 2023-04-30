@@ -57,6 +57,22 @@ Experimental results on SRBench:
 
 .. image:: https://raw.githubusercontent.com/hengzhe-zhang/PS-Tree/master/docs/R2-result.png
 
+Citation
+----------------
+.. code:: bibtex
+
+    @article{zhang2022ps,
+    title={PS-Tree: A piecewise symbolic regression tree},
+    author={Zhang, Hengzhe and Zhou, Aimin and Qian, Hong and Zhang, Hu},
+    journal={Swarm and Evolutionary Computation},
+    volume={71},
+    pages={101061},
+    year={2022},
+    publisher={Elsevier}
+    }
+
+* By the way, I would like to express my gratitude to Qi-Hao Huang from Guangzhou University for pointing out that the "minimize" in formula (4) of the paper should be "maximize", corresponding to the code. (https://github.com/hengzhe-zhang/PS-Tree/blob/master/pstree/cluster_gp_sklearn.py#L320-L346)
+
 Credits
 --------------
 
