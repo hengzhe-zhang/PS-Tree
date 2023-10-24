@@ -402,13 +402,13 @@ class GPRegressor(NormalizationRegressor):
             # warnings.simplefilter("ignore", category=ConvergenceWarning)
 
             def get_lasso():
-                alphas = _alpha_grid(features, Y_true, normalize=True)
+                alphas = _alpha_grid(features, Y_true)
                 ridge_model = ElasticNet(alpha=1, lambda_path=alphas, n_splits=5, tol=1e-4,
                                          random_state=0)
                 return ridge_model
 
             def get_elastic_net(ratio):
-                alphas = _alpha_grid(features, Y_true, l1_ratio=ratio, normalize=True)
+                alphas = _alpha_grid(features, Y_true, l1_ratio=ratio)
                 ridge_model = ElasticNet(alpha=ratio, lambda_path=alphas, n_splits=5, tol=1e-4,
                                          random_state=0)
                 return ridge_model
