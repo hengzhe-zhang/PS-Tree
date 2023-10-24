@@ -10,7 +10,7 @@ import pyximport
 from deap import creator, base, tools, gp
 from deap.algorithms import varAnd
 from deap.base import Fitness
-from deap.gp import Terminal, Ephemeral
+from deap.gp import Terminal, MetaEphemeral
 from deap.tools import selNSGA2, selRandom, selSPEA2, selLexicase, selNSGA3
 from glmnet import ElasticNet
 from icecream import ic
@@ -31,6 +31,7 @@ from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, _tree
 from sympy import parse_expr, Piecewise, srepr
 
+from pstree import cluster_gp_tools
 from pstree.cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
     selBestSum, selMOEAD, selIBEA, c_deepcopy
 from pstree.common_utils import gene_to_string, reset_random
@@ -337,7 +338,7 @@ class GPRegressor(NormalizationRegressor):
                 target_dimension += 1
                 variable_length = len(set(map(lambda x: x.name,
                                               filter(lambda x: isinstance(x, Terminal) and
-                                                               not isinstance(x, Ephemeral), ind))))
+                                                               not isinstance(x, MetaEphemeral), ind))))
                 fitness_values = fitness_values + (-1 * variable_length,)
             ind.fitness.weights = tuple([1 for _ in range(target_dimension)])
             ind.fitness.values = fitness_values
