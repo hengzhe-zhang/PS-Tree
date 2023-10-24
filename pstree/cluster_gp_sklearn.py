@@ -170,7 +170,7 @@ class EnsembleRidge(RidgeCV):
 
 
 def get_terminal_order(node, context=None):
-    if isinstance(node, gp.Ephemeral) or isinstance(node.value, float) \
+    if isinstance(node, gp.MetaEphemeral) or isinstance(node.value, float) \
         or isinstance(node.value, int) or context is not None and node.value in context:
         return 0
     return 1
