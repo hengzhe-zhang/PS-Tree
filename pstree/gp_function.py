@@ -57,12 +57,12 @@ threshold = 1e-6
 
 
 def protect_divide(x1, x2):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return np.where(np.abs(x2) > threshold, np.divide(x1, x2), 1.)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.where(np.abs(x2) > threshold, np.divide(x1, x2), 1.0)
 
 
 def analytical_quotient(x1, x2):
-    return x1 / np.sqrt(1 + x2 ** 2)
+    return x1 / np.sqrt(1 + x2**2)
 
 
 def protect_sqrt(a):

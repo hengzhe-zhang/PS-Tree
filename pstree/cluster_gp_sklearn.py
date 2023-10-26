@@ -32,8 +32,14 @@ from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, _tree
 from sympy import parse_expr, Piecewise, srepr
 
 from pstree import cluster_gp_tools
-from pstree.cluster_gp_tools import add_pset_function, selAutomaticEpsilonLexicase, \
-    selBestSum, selMOEAD, selIBEA, c_deepcopy
+from pstree.cluster_gp_tools import (
+    add_pset_function,
+    selAutomaticEpsilonLexicase,
+    selBestSum,
+    selMOEAD,
+    selIBEA,
+    c_deepcopy,
+)
 from pstree.common_utils import gene_to_string, reset_random
 from pstree.custom_sklearn_tools import LassoRidge, RFERegressor
 from pstree.gp_function import *
@@ -73,11 +79,16 @@ def train_normalization(func):
 
 
 def get_labels(tree, X, soft_tree=False):
-    if isinstance(tree, DecisionTreeClassifier) or isinstance(tree, KMeans) or \
-        isinstance(tree, BayesianGaussianMixture) or isinstance(tree, GaussianNB) \
-        or isinstance(tree, RandomForestClassifier) or isinstance(tree, LogisticRegression):
+    if (
+        isinstance(tree, DecisionTreeClassifier)
+        or isinstance(tree, KMeans)
+        or isinstance(tree, BayesianGaussianMixture)
+        or isinstance(tree, GaussianNB)
+        or isinstance(tree, RandomForestClassifier)
+        or isinstance(tree, LogisticRegression)
+    ):
         if soft_tree:
-            if hasattr(tree, 'predict_proba'):
+            if hasattr(tree, "predict_proba"):
                 tree.labels_ = tree.predict_proba(X)
             else:
                 tree.labels_ = tree.predict(X).astype(int)
@@ -137,22 +148,29 @@ class FastMeasure(Fitness):
             self._values = tuple(map(operator.truediv, self.wvalues, self.weights))
         except TypeError:
             _, _, traceback = sys.exc_info()
-            raise TypeError("Both weights and assigned values must be a "
-                            "sequence of numbers when assigning to values of "
-                            "%r. Currently assigning value(s) %r of %r to a "
-                            "fitness with weights %s."
-                            % (self.__class__, values, type(values),
-                               self.weights)).with_traceback(traceback)
+            raise TypeError(
+                "Both weights and assigned values must be a "
+                "sequence of numbers when assigning to values of "
+                "%r. Currently assigning value(s) %r of %r to a "
+                "fitness with weights %s."
+                % (self.__class__, values, type(values), self.weights)
+            ).with_traceback(traceback)
 
     def delValues(self):
         self.wvalues = ()
         self._values = ()
 
-    values = property(getValues, setValues, delValues,
-                      ("Fitness values. Use directly ``individual.fitness.values = values`` "
-                       "in order to set the fitness and ``del individual.fitness.values`` "
-                       "in order to clear (invalidate) the fitness. The (unweighted) fitness "
-                       "can be directly accessed via ``individual.fitness.values``."))
+    values = property(
+        getValues,
+        setValues,
+        delValues,
+        (
+            "Fitness values. Use directly ``individual.fitness.values = values`` "
+            "in order to set the fitness and ``del individual.fitness.values`` "
+            "in order to clear (invalidate) the fitness. The (unweighted) fitness "
+            "can be directly accessed via ``individual.fitness.values``."
+        ),
+    )
 
 
 class EnsembleRidge(RidgeCV):
@@ -163,7 +181,9 @@ class EnsembleRidge(RidgeCV):
     def fit(self, X, y, sample_weight=None):
         self.model.fit(X, y)
         self.coef_ = np.mean([m.coef_ for m in self.model.estimators_], axis=0)
-        self.best_score_ = np.mean([m.best_score_ for m in self.model.estimators_], axis=0)
+        self.best_score_ = np.mean(
+            [m.best_score_ for m in self.model.estimators_], axis=0
+        )
         return self
 
     def predict(self, X):
@@ -171,8 +191,13 @@ class EnsembleRidge(RidgeCV):
 
 
 def get_terminal_order(node, context=None):
-    if isinstance(node, gp.MetaEphemeral) or isinstance(node.value, float) \
-        or isinstance(node.value, int) or context is not None and node.value in context:
+    if (
+        isinstance(node, gp.MetaEphemeral)
+        or isinstance(node.value, float)
+        or isinstance(node.value, int)
+        or context is not None
+        and node.value in context
+    ):
         return 0
     return 1
 
@@ -190,7 +215,7 @@ def calculate_order(ind, context=None):
             order_stack.append(2 * arg_order)
         else:  # node.arity == 2:
             args_order = [order_stack.pop() for _ in range(node.arity)]
-            if node.name.startswith('add') or node.name.startswith('sub'):
+            if node.name.startswith("add") or node.name.startswith("sub"):
                 order_stack.append(max(args_order))
             else:
                 order_stack.append(sum(args_order))
@@ -198,17 +223,56 @@ def calculate_order(ind, context=None):
 
 
 class GPRegressor(NormalizationRegressor):
-    def __init__(self, input_names=None, n_pop=50, n_gen=200, max_arity=2, height_limit=6, constant_range=2,
-                 cross_rate=0.9, mutate_rate=0.1, verbose=False, basic_primitive=True, gene_num=1, random_float=False,
-                 log_dict_size=int(1e9), archive_size=None, category_num=1, cluster_gp=True,
-                 select=selRandom, test_fun=None, train_test_fun=None, samples=20, min_samples_leaf=1,
-                 max_depth=None, linear_scale=False, regression_type=None, regression_regularization=0,
-                 score_function=None, validation_selection=True, ridge_alpha='np.logspace(0, 4)',
-                 survival_selection='NSGA2', feature_normalization=True, structure_diversity=True,
-                 space_partition_fun=None, adaptive_tree=True, original_features=True,
-                 new_surrogate_function=True, advanced_elimination=True, super_object=None, final_prune='Lasso',
-                 correlation_elimination=False, tree_shrinkage=False, size_objective=True, soft_label=False,
-                 initial_height=None, afp=False, complexity_measure=False, parsimonious_variable=False, **params):
+    def __init__(
+        self,
+        input_names=None,
+        n_pop=50,
+        n_gen=200,
+        max_arity=2,
+        height_limit=6,
+        constant_range=2,
+        cross_rate=0.9,
+        mutate_rate=0.1,
+        verbose=False,
+        basic_primitive=True,
+        gene_num=1,
+        random_float=False,
+        log_dict_size=int(1e9),
+        archive_size=None,
+        category_num=1,
+        cluster_gp=True,
+        select=selRandom,
+        test_fun=None,
+        train_test_fun=None,
+        samples=20,
+        min_samples_leaf=1,
+        max_depth=None,
+        linear_scale=False,
+        regression_type=None,
+        regression_regularization=0,
+        score_function=None,
+        validation_selection=True,
+        ridge_alpha="np.logspace(0, 4)",
+        survival_selection="NSGA2",
+        feature_normalization=True,
+        structure_diversity=True,
+        space_partition_fun=None,
+        adaptive_tree=True,
+        original_features=True,
+        new_surrogate_function=True,
+        advanced_elimination=True,
+        super_object=None,
+        final_prune="Lasso",
+        correlation_elimination=False,
+        tree_shrinkage=False,
+        size_objective=True,
+        soft_label=False,
+        initial_height=None,
+        afp=False,
+        complexity_measure=False,
+        parsimonious_variable=False,
+        **params,
+    ):
         """
         :param n_pop: size of population
         :param n_gen: number of generations
@@ -229,9 +293,9 @@ class GPRegressor(NormalizationRegressor):
         self.afp = afp
         self.complexity_measure = complexity_measure
         self.parsimonious_variable = parsimonious_variable
-        if hasattr(creator, 'FitnessMin'):
+        if hasattr(creator, "FitnessMin"):
             del creator.FitnessMin
-        if hasattr(creator, 'Individual'):
+        if hasattr(creator, "Individual"):
             del creator.Individual
 
         self.toolbox = None
@@ -288,20 +352,28 @@ class GPRegressor(NormalizationRegressor):
         return predicted_list
 
     def evaluate(self, individuals, final_model=None):
-        compiled_individuals = [self.toolbox.compile(individual) for individual in individuals]
+        compiled_individuals = [
+            self.toolbox.compile(individual) for individual in individuals
+        ]
         all_features = self.feature_construction(compiled_individuals, self.train_data)
         fitness, pipelines, score = self.model_construction(all_features, final_model)
 
         if self.verbose:
-            print('score', score / len(self.Y))
+            print("score", score / len(self.Y))
 
         # correlation = np.corrcoef(np.array([p['Ridge'].coef_ for p in pipelines]))
-        self.adaptive_tree_generation(self.feature_construction(compiled_individuals, self.train_data,
-                                                                self.original_features),
-                                      pipelines)
+        self.adaptive_tree_generation(
+            self.feature_construction(
+                compiled_individuals, self.train_data, self.original_features
+            ),
+            pipelines,
+        )
 
-        if (self.validation_selection and score < self.best_cv) or (not self.validation_selection) or \
-            (final_model != None):
+        if (
+            (self.validation_selection and score < self.best_cv)
+            or (not self.validation_selection)
+            or (final_model != None)
+        ):
             # record the best individual in the training process
             self.update_iteration.append((self.current_gen, score / len(self.Y)))
             self.best_cv = score
@@ -323,8 +395,9 @@ class GPRegressor(NormalizationRegressor):
             fitness_values = tuple(np.abs(fitness[:, i]))
             if self.size_objective:
                 target_dimension += 1
-                fitness_values = fitness_values + \
-                                 (-0.01 * max(len(ind), self.average_size) / self.average_size,)
+                fitness_values = fitness_values + (
+                    -0.01 * max(len(ind), self.average_size) / self.average_size,
+                )
             if self.afp:
                 target_dimension += 1
                 fitness_values = fitness_values + (ind.age,)
@@ -336,9 +409,18 @@ class GPRegressor(NormalizationRegressor):
 
             if self.parsimonious_variable:
                 target_dimension += 1
-                variable_length = len(set(map(lambda x: x.name,
-                                              filter(lambda x: isinstance(x, Terminal) and
-                                                               not isinstance(x, MetaEphemeral), ind))))
+                variable_length = len(
+                    set(
+                        map(
+                            lambda x: x.name,
+                            filter(
+                                lambda x: isinstance(x, Terminal)
+                                and not isinstance(x, MetaEphemeral),
+                                ind,
+                            ),
+                        )
+                    )
+                )
                 fitness_values = fitness_values + (-1 * variable_length,)
             ind.fitness.weights = tuple([1 for _ in range(target_dimension)])
             ind.fitness.values = fitness_values
@@ -361,22 +443,26 @@ class GPRegressor(NormalizationRegressor):
             regr = Pipeline(
                 [
                     ("Scaler", StandardScaler()),
-                    ("Ridge", DummyRegressor(strategy='constant', constant=constant)),
+                    ("Ridge", DummyRegressor(strategy="constant", constant=constant)),
                 ]
             )
             regr.fit(features, y)
-            regr['Ridge'].coef_ = coef
-            regr['Ridge'].intercept_ = constant
+            regr["Ridge"].coef_ = coef
+            regr["Ridge"].intercept_ = constant
             # append coefficients and pipelines to the archive
             fitness.append(coef)
             pipelines.append(regr)
             return coef, regr
 
         for i in range(category_num + 1):
+
             def check_rule(x):
                 # if number of samples <2 :unable to execute leave-one CV
                 # if number of samples <10 :unable to execute 5-fold CV
-                if x < 2 or (x < 10 and not (self.ridge_alpha == 'RidgeCV' and final_model == None)):
+                if x < 2 or (
+                    x < 10
+                    and not (self.ridge_alpha == "RidgeCV" and final_model == None)
+                ):
                     return True
                 else:
                     return False
@@ -403,41 +489,47 @@ class GPRegressor(NormalizationRegressor):
 
             def get_lasso():
                 alphas = _alpha_grid(features, Y_true)
-                ridge_model = ElasticNet(alpha=1, lambda_path=alphas, n_splits=5, tol=1e-4,
-                                         random_state=0)
+                ridge_model = ElasticNet(
+                    alpha=1, lambda_path=alphas, n_splits=5, tol=1e-4, random_state=0
+                )
                 return ridge_model
 
             def get_elastic_net(ratio):
                 alphas = _alpha_grid(features, Y_true, l1_ratio=ratio)
-                ridge_model = ElasticNet(alpha=ratio, lambda_path=alphas, n_splits=5, tol=1e-4,
-                                         random_state=0)
+                ridge_model = ElasticNet(
+                    alpha=ratio,
+                    lambda_path=alphas,
+                    n_splits=5,
+                    tol=1e-4,
+                    random_state=0,
+                )
                 return ridge_model
 
             # determine the evaluation model
-            if self.ridge_alpha == 'Lasso':
+            if self.ridge_alpha == "Lasso":
                 ridge_model = get_lasso()
-            elif self.ridge_alpha == 'Linear':
+            elif self.ridge_alpha == "Linear":
                 ridge_model = LinearRegression()
-            elif 'ElasticNet' in self.ridge_alpha:
-                ratio = float(self.ridge_alpha.split('-')[1])
+            elif "ElasticNet" in self.ridge_alpha:
+                ratio = float(self.ridge_alpha.split("-")[1])
                 ridge_model = get_elastic_net(ratio)
-            elif self.ridge_alpha == 'LinearSVR':
+            elif self.ridge_alpha == "LinearSVR":
                 ridge_model = LinearSVR()
-            elif self.ridge_alpha == 'EnsembleRidge':
+            elif self.ridge_alpha == "EnsembleRidge":
                 ridge_model = EnsembleRidge(np.logspace(0, 4))
             else:
                 # default use this option
                 ridge_model = RidgeCV(alphas=eval(self.ridge_alpha))
 
             # determine the final model
-            if final_model == 'Lasso':
+            if final_model == "Lasso":
                 # default use this option
                 ridge_model = get_lasso()
-            elif final_model == 'ElasticNet':
+            elif final_model == "ElasticNet":
                 ridge_model = get_elastic_net(0.5)
-            elif final_model == 'LassoRidge':
+            elif final_model == "LassoRidge":
                 ridge_model = LassoRidge(get_lasso(), ridge_model)
-            elif final_model == 'RFE':
+            elif final_model == "RFE":
                 ridge_model = RFERegressor(get_lasso(), n_features_to_select=10, step=5)
 
             if self.feature_normalization:
@@ -447,9 +539,11 @@ class GPRegressor(NormalizationRegressor):
                 ]
                 pipe = Pipeline(steps)
             else:
-                pipe = Pipeline([
-                    ("Ridge", ridge_model),
-                ])
+                pipe = Pipeline(
+                    [
+                        ("Ridge", ridge_model),
+                    ]
+                )
 
             if self.validation_selection:
                 # record the best individual in the training process
@@ -475,7 +569,9 @@ class GPRegressor(NormalizationRegressor):
                     if len(self.category.shape) == 1:
                         score += -1 * abs(len(Y_true) * np.max(ridge.cv_mean_score_))
                     else:
-                        score += -1 * abs(np.sum(self.category[:, i]) * np.max(ridge.cv_mean_score_))
+                        score += -1 * abs(
+                            np.sum(self.category[:, i]) * np.max(ridge.cv_mean_score_)
+                        )
                 elif isinstance(ridge, LassoCV):
                     score += abs(len(Y_true) * np.min(np.sum(ridge.mse_path_, axis=1)))
                 elif isinstance(ridge, ElasticNetCV):
@@ -492,7 +588,7 @@ class GPRegressor(NormalizationRegressor):
                     feature_importances = np.abs(ridge.coef_)
             else:
                 pipe.fit(features, np.squeeze(Y_true))
-                feature_importances = np.abs(pipe['Ridge'].coef_)
+                feature_importances = np.abs(pipe["Ridge"].coef_)
             fitness.append(feature_importances)
             pipelines.append(pipe)
         return fitness, pipelines, score
@@ -517,13 +613,27 @@ class GPRegressor(NormalizationRegressor):
         if self.adaptive_tree:
             if self.soft_label:
                 original_all_features = all_features
-                prob = softmax(np.array([(p.predict(all_features[:, self.train_data.shape[1]:])
-                                          - self.Y) ** 2 * -1 for p in pipelines]),
-                               axis=0)
+                prob = softmax(
+                    np.array(
+                        [
+                            (
+                                p.predict(all_features[:, self.train_data.shape[1] :])
+                                - self.Y
+                            )
+                            ** 2
+                            * -1
+                            for p in pipelines
+                        ]
+                    ),
+                    axis=0,
+                )
                 sample = np.random.rand(len(pipelines), all_features.shape[0])
                 matrix = prob > sample
                 features = np.concatenate([all_features[s] for s in matrix], axis=0)
-                label = np.concatenate([np.full(np.sum(s == True), i) for i, s in enumerate(matrix)], axis=0)
+                label = np.concatenate(
+                    [np.full(np.sum(s == True), i) for i, s in enumerate(matrix)],
+                    axis=0,
+                )
                 all_features = features
                 _, decision_tree = self.space_partition_fun(all_features, label)
                 self.category = decision_tree.predict_proba(original_all_features)
@@ -535,12 +645,17 @@ class GPRegressor(NormalizationRegressor):
                 for i, p in enumerate(pipelines):
                     # np.array([(p.predict(all_features[:, self.train_data.shape[1]:]) - self.Y) ** 2 for p in pipelines])
                     if self.original_features:
-                        loss = (p.predict(all_features[:, self.train_data.shape[1]:]) - self.Y) ** 2
+                        loss = (
+                            p.predict(all_features[:, self.train_data.shape[1] :])
+                            - self.Y
+                        ) ** 2
                     else:
                         loss = (p.predict(all_features) - self.Y) ** 2
                     label[loss < best_fitness] = i
                     best_fitness[loss < best_fitness] = loss[loss < best_fitness]
-                self.category, decision_tree = self.space_partition_fun(all_features, label)
+                self.category, decision_tree = self.space_partition_fun(
+                    all_features, label
+                )
 
     def statistic_fun(self, ind):
         # return loss and time
@@ -555,11 +670,11 @@ class GPRegressor(NormalizationRegressor):
         return (time.time(),)
 
     def fit(self, X, y=None, category=None):
-        if not hasattr(self, 'fit_function'):
+        if not hasattr(self, "fit_function"):
             raise Exception("Fit function must be specified!")
 
-        if (not hasattr(self, 'input_names')) or (self.input_names is None):
-            self.input_names = [f'X{i}' for i in range(X.shape[1])]
+        if (not hasattr(self, "input_names")) or (self.input_names is None):
+            self.input_names = [f"X{i}" for i in range(X.shape[1])]
 
         self.train_data = X
         self.Y = y
@@ -630,34 +745,48 @@ class GPRegressor(NormalizationRegressor):
         return c_deepcopy(self)
 
     def lazy_init(self, input_names):
-        pset = gp.PrimitiveSet("MAIN", len(input_names), prefix='X')
+        pset = gp.PrimitiveSet("MAIN", len(input_names), prefix="X")
         toolbox = base.Toolbox()
-        toolbox.register('evaluate', self.evaluate)
-        toolbox.register('select', self.select)
+        toolbox.register("evaluate", self.evaluate)
+        toolbox.register("select", self.select)
 
         self.pset = pset
         self.toolbox = toolbox
 
         add_pset_function(pset, self.max_arity, self.basic_primitive)
-        if hasattr(gp, 'rand101'):
+        if hasattr(gp, "rand101"):
             # delete existing constant generator
-            delattr(gp, 'rand101')
+            delattr(gp, "rand101")
         if self.random_float:
-            pset.addEphemeralConstant('rand101', lambda: random.uniform(-self.constant_range, self.constant_range))
+            pset.addEphemeralConstant(
+                "rand101",
+                lambda: random.uniform(-self.constant_range, self.constant_range),
+            )
         else:
-            pset.addEphemeralConstant("rand101", lambda: random.randint(-self.constant_range, self.constant_range))
+            pset.addEphemeralConstant(
+                "rand101",
+                lambda: random.randint(-self.constant_range, self.constant_range),
+            )
 
         number_of_objective = self.category_num
-        creator.create("FitnessMin", FastMeasure, weights=tuple([1 for _ in range(number_of_objective)]))
-        creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMin, age=0)
+        creator.create(
+            "FitnessMin",
+            FastMeasure,
+            weights=tuple([1 for _ in range(number_of_objective)]),
+        )
+        creator.create(
+            "Individual", gp.PrimitiveTree, fitness=creator.FitnessMin, age=0
+        )
 
         if self.initial_height is None:
             toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=0, max_=2)
         else:
-            a, b = self.initial_height.split('-')
+            a, b = self.initial_height.split("-")
             a, b = int(a), int(b)
             toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=a, max_=b)
-        toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
+        toolbox.register(
+            "individual", tools.initIterate, creator.Individual, toolbox.expr
+        )
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
         toolbox.register("compile", gp.compile, pset=pset)
 
@@ -665,8 +794,18 @@ class GPRegressor(NormalizationRegressor):
         toolbox.register("mate", gp.cxOnePoint)
         toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
 
-        toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=self.height_limit))
-        toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=self.height_limit))
+        toolbox.decorate(
+            "mate",
+            gp.staticLimit(
+                key=operator.attrgetter("height"), max_value=self.height_limit
+            ),
+        )
+        toolbox.decorate(
+            "mutate",
+            gp.staticLimit(
+                key=operator.attrgetter("height"), max_value=self.height_limit
+            ),
+        )
         if self.n_gen == 0:
             self.pop = self.generation_original_features()
         else:
@@ -683,27 +822,54 @@ class GPRegressor(NormalizationRegressor):
         return pop
 
     def fit_function(self):
-        self.pop, self.log_book = self.moea(self.pop, self.toolbox,
-                                            self.cross_rate, self.mutate_rate,
-                                            self.n_gen, stats=self.stats,
-                                            halloffame=None, verbose=self.verbose,
-                                            params=self.params)
+        self.pop, self.log_book = self.moea(
+            self.pop,
+            self.toolbox,
+            self.cross_rate,
+            self.mutate_rate,
+            self.n_gen,
+            stats=self.stats,
+            halloffame=None,
+            verbose=self.verbose,
+            params=self.params,
+        )
 
-    def moea(self, population, toolbox, cxpb, mutpb, ngen, stats=None,
-             halloffame=None, verbose=__debug__, params=None):
+    def moea(
+        self,
+        population,
+        toolbox,
+        cxpb,
+        mutpb,
+        ngen,
+        stats=None,
+        halloffame=None,
+        verbose=__debug__,
+        params=None,
+    ):
         if self.new_surrogate_function is True:
-            def individual_to_tuple(ind):
-                return tuple(self.feature_synthesis(self.train_data[:20], [ind]).flatten().tolist())
-        elif str(self.new_surrogate_function).startswith('First'):
-            sample_count = int(self.new_surrogate_function.split('-')[1])
 
             def individual_to_tuple(ind):
-                return tuple(self.feature_synthesis(self.train_data[:sample_count], [ind]).flatten().tolist())
+                return tuple(
+                    self.feature_synthesis(self.train_data[:20], [ind])
+                    .flatten()
+                    .tolist()
+                )
+
+        elif str(self.new_surrogate_function).startswith("First"):
+            sample_count = int(self.new_surrogate_function.split("-")[1])
+
+            def individual_to_tuple(ind):
+                return tuple(
+                    self.feature_synthesis(self.train_data[:sample_count], [ind])
+                    .flatten()
+                    .tolist()
+                )
+
         else:
             individual_to_tuple = cluster_gp_tools.individual_to_tuple
 
         logbook = tools.Logbook()
-        logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
+        logbook.header = ["gen", "nevals"] + (stats.fields if stats else [])
 
         # Evaluate the individuals with an invalid fitness
         toolbox.evaluate(population)
@@ -725,21 +891,25 @@ class GPRegressor(NormalizationRegressor):
             log_dict.insert(ind_tuple, p.fitness.values)
         pop_size = len(population)
         # assigning the crowding distance to each individual
-        if self.select == selTournamentDCD and self.survival_selection == 'NSGA2':
+        if self.select == selTournamentDCD and self.survival_selection == "NSGA2":
             population = selNSGA2(population, pop_size)
 
         # Begin the generational process
         for gen in range(1, ngen + 1):
-            if self.basic_primitive == 'dynamic' and self.current_gen > (self.n_gen // 2):
+            if self.basic_primitive == "dynamic" and self.current_gen > (
+                self.n_gen // 2
+            ):
                 self.pset.addPrimitive(np.sin, 1)
                 self.pset.addPrimitive(np.cos, 1)
             if self.tree_shrinkage and (gen % 50) == 0:
-                self.super_object.max_leaf_nodes = max(self.super_object.max_leaf_nodes // 2, 1)
+                self.super_object.max_leaf_nodes = max(
+                    self.super_object.max_leaf_nodes // 2, 1
+                )
             self.current_gen = gen
             if self.structure_diversity:
                 count = 0
                 new_offspring = []
-                while (len(new_offspring) < pop_size):
+                while len(new_offspring) < pop_size:
                     count += 1
                     # Select the next generation individuals
                     # if self.survival_selection == 'Random':
@@ -761,8 +931,11 @@ class GPRegressor(NormalizationRegressor):
                                 continue
                             if not log_dict.exist(ind_tuple):
                                 if self.advanced_elimination and (
-                                    np.abs(pearsonr(ind_tuple, parent_tuple[0])[0]) >= 0.95 or
-                                    np.abs(pearsonr(ind_tuple, parent_tuple[1])[0]) >= 0.95):
+                                    np.abs(pearsonr(ind_tuple, parent_tuple[0])[0])
+                                    >= 0.95
+                                    or np.abs(pearsonr(ind_tuple, parent_tuple[1])[0])
+                                    >= 0.95
+                                ):
                                     log_dict.insert(ind_tuple, -1)
                                     continue
                                 o.ind_tuple = ind_tuple
@@ -785,7 +958,9 @@ class GPRegressor(NormalizationRegressor):
 
             # Evaluate the individuals with an invalid fitness
             if self.correlation_elimination:
-                corr_matrix = np.abs(np.corrcoef(np.array([p.ind_tuple for p in population + offspring])))
+                corr_matrix = np.abs(
+                    np.corrcoef(np.array([p.ind_tuple for p in population + offspring]))
+                )
                 # Select upper triangle of correlation matrix
                 upper = np.triu(corr_matrix, k=1)
                 # Find index of feature columns with correlation greater than 0.95
@@ -805,7 +980,7 @@ class GPRegressor(NormalizationRegressor):
                 halloffame.update(offspring)
 
             # Replace the current population by the offspring
-            if self.survival_selection == 'NSGA2':
+            if self.survival_selection == "NSGA2":
                 # if len(offspring[0].fitness.wvalues) > 2:
                 #     high_dimensional = True
                 #     self.random_objectives = np.random.uniform(0, 1, size=(len(offspring[0].fitness.wvalues), 2))
@@ -826,14 +1001,17 @@ class GPRegressor(NormalizationRegressor):
                 #     for ind in population:
                 #         ind.fitness.weights = getattr(ind, 'original_weights')
                 #         ind.fitness.values = getattr(ind, 'original_fitness')
-            elif self.survival_selection == 'IBEA':
+            elif self.survival_selection == "IBEA":
                 population[:] = selIBEA(population + offspring, pop_size)
-            elif self.survival_selection == 'SPEA2':
+            elif self.survival_selection == "SPEA2":
                 population[:] = selSPEA2(population + offspring, pop_size)
-            elif self.survival_selection == 'NSGA3':
-                ref_points = tools.uniform_reference_points(nobj=len(population[0].fitness.wvalues))
+            elif self.survival_selection == "NSGA3":
+                ref_points = tools.uniform_reference_points(
+                    nobj=len(population[0].fitness.wvalues)
+                )
                 population[:] = selNSGA3(population + offspring, pop_size, ref_points)
-            elif self.survival_selection == 'Lexicase':
+            elif self.survival_selection == "Lexicase":
+
                 def selLexicasePlus(individuals: list, k: int):
                     selected_individuals = []
                     while len(selected_individuals) < k:
@@ -844,7 +1022,8 @@ class GPRegressor(NormalizationRegressor):
                     return selected_individuals
 
                 population[:] = selLexicasePlus(population + offspring, pop_size)
-            elif self.survival_selection == 'AutomaticEpsilonLexicase':
+            elif self.survival_selection == "AutomaticEpsilonLexicase":
+
                 def selAutomaticEpsilonLexicasePlus(individuals: list, k: int):
                     selected_individuals = []
                     while len(selected_individuals) < k:
@@ -854,15 +1033,18 @@ class GPRegressor(NormalizationRegressor):
                         selected_individuals.extend(lexicase_inds)
                     return selected_individuals
 
-                population[:] = selAutomaticEpsilonLexicasePlus(population + offspring, pop_size)
-            elif self.survival_selection == 'Random':
+                population[:] = selAutomaticEpsilonLexicasePlus(
+                    population + offspring, pop_size
+                )
+            elif self.survival_selection == "Random":
+
                 def selSample(individuals, k):
                     return random.sample(individuals, k)
 
                 population[:] = selSample(population + offspring, pop_size)
-            elif self.survival_selection == 'Best':
+            elif self.survival_selection == "Best":
                 population[:] = selBestSum(population + offspring, pop_size)
-            elif self.survival_selection == 'MOEA/D':
+            elif self.survival_selection == "MOEA/D":
                 population[:] = selMOEAD(population + offspring, pop_size)
             else:
                 raise Exception
@@ -889,8 +1071,9 @@ class GPRegressor(NormalizationRegressor):
         if self.final_prune is not None:
             toolbox.evaluate(self.best_pop, final_model=self.final_prune)
 
-        features = self.feature_synthesis(self.train_data, self.best_pop,
-                                          self.original_features)
+        features = self.feature_synthesis(
+            self.train_data, self.best_pop, self.original_features
+        )
         self.adaptive_tree_generation(features, self.pipelines)
         return population, logbook
 
@@ -920,9 +1103,22 @@ class PSTreeRegressor(NormalizationRegressor):
     An upper-level class for PS-Tree
     """
 
-    def __init__(self, regr_class, tree_class, min_samples_leaf=1, max_depth=None, max_leaf_nodes=4, random_seed=0,
-                 restricted_classification_tree=True, basic_primitive='optimal',
-                 soft_tree=True, final_soft_tree=True, adaptive_tree=True, random_state=0, **params):
+    def __init__(
+        self,
+        regr_class,
+        tree_class,
+        min_samples_leaf=1,
+        max_depth=None,
+        max_leaf_nodes=4,
+        random_seed=0,
+        restricted_classification_tree=True,
+        basic_primitive="optimal",
+        soft_tree=True,
+        final_soft_tree=True,
+        adaptive_tree=True,
+        random_state=0,
+        **params,
+    ):
         """
         regr_class: the class name for base learner
         tree_class: the class name for the upper-level decision tree
@@ -947,7 +1143,7 @@ class PSTreeRegressor(NormalizationRegressor):
     def fit(self, X: np.ndarray, y=None):
         self.train_data = X
         self.train_label = y
-        if self.min_samples_leaf in ['Auto', 'Auto-4', 'Auto-6', 'Auto-8']:
+        if self.min_samples_leaf in ["Auto", "Auto-4", "Auto-6", "Auto-8"]:
             best_size = automatically_determine_best_size(X, y, self.min_samples_leaf)
             self.min_samples_leaf = best_size
         if type(self.min_samples_leaf) is str:
@@ -956,13 +1152,19 @@ class PSTreeRegressor(NormalizationRegressor):
         category, _ = self.space_partition(X, y)
         if self.adaptive_tree is True:
             self.tree_class = DecisionTreeClassifier
-        if self.adaptive_tree == 'Soft':
+        if self.adaptive_tree == "Soft":
             self.tree_class = LogisticRegression
 
-        self.regr: GPRegressor = self.regr_class(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf,
-                                                 space_partition_fun=self.space_partition,
-                                                 basic_primitive=self.basic_primitive, soft_tree=self.soft_tree,
-                                                 adaptive_tree=self.adaptive_tree, super_object=self, **self.params)
+        self.regr: GPRegressor = self.regr_class(
+            max_depth=self.max_depth,
+            min_samples_leaf=self.min_samples_leaf,
+            space_partition_fun=self.space_partition,
+            basic_primitive=self.basic_primitive,
+            soft_tree=self.soft_tree,
+            adaptive_tree=self.adaptive_tree,
+            super_object=self,
+            **self.params,
+        )
         self.regr.fit(X, y, category)
         return self
 
@@ -977,53 +1179,62 @@ class PSTreeRegressor(NormalizationRegressor):
                     max_depth=self.max_depth,
                     min_samples_leaf=self.min_samples_leaf,
                     max_leaf_nodes=self.max_leaf_nodes,
-                    random_state=self.random_seed)
+                    random_state=self.random_seed,
+                )
             else:
                 self.tree = self.tree_class(
                     max_depth=self.max_depth,
                     min_samples_leaf=self.min_samples_leaf,
                     random_state=self.random_seed,
-                    ccp_alpha=0.01)
+                    ccp_alpha=0.01,
+                )
         elif self.tree_class == LogisticRegression:
-            self.tree = LogisticRegression(
-                solver='liblinear'
-            )
+            self.tree = LogisticRegression(solver="liblinear")
         elif self.tree_class == DecisionTreeRegressor:
             self.tree = self.tree_class(
                 max_depth=self.max_depth,
                 min_samples_leaf=self.min_samples_leaf,
                 max_leaf_nodes=self.max_leaf_nodes,
-                random_state=self.random_seed)
+                random_state=self.random_seed,
+            )
         elif self.tree_class == KMeans:
-            self.tree = KMeans(n_clusters=self.max_leaf_nodes, random_state=self.random_seed)
+            self.tree = KMeans(
+                n_clusters=self.max_leaf_nodes, random_state=self.random_seed
+            )
         elif self.tree_class == BayesianGaussianMixture:
-            self.tree = BayesianGaussianMixture(n_components=self.max_leaf_nodes, max_iter=1000,
-                                                random_state=self.random_seed)
+            self.tree = BayesianGaussianMixture(
+                n_components=self.max_leaf_nodes,
+                max_iter=1000,
+                random_state=self.random_seed,
+            )
         elif self.tree_class == GaussianNB:
             self.tree = GaussianNB()
         elif self.tree_class == RandomForestClassifier:
-            self.tree = RandomForestClassifier(n_estimators=10,
-                                               max_depth=self.max_depth,
-                                               min_samples_leaf=self.min_samples_leaf,
-                                               max_leaf_nodes=self.max_leaf_nodes,
-                                               random_state=self.random_seed)
+            self.tree = RandomForestClassifier(
+                n_estimators=10,
+                max_depth=self.max_depth,
+                min_samples_leaf=self.min_samples_leaf,
+                max_leaf_nodes=self.max_leaf_nodes,
+                random_state=self.random_seed,
+            )
         else:
             raise Exception
 
-        if hasattr(self, 'regr') and self.regr.original_features == 'original':
-            self.tree.fit(X[:, :self.train_data.shape[1]], y)
-            self.tree.labels_ = get_labels(self.tree, X[:, :self.train_data.shape[1]],
-                                           self.soft_tree)
+        if hasattr(self, "regr") and self.regr.original_features == "original":
+            self.tree.fit(X[:, : self.train_data.shape[1]], y)
+            self.tree.labels_ = get_labels(
+                self.tree, X[:, : self.train_data.shape[1]], self.soft_tree
+            )
         else:
             self.tree.fit(X, y)
             self.tree.labels_ = get_labels(self.tree, X, self.soft_tree)
         if len(self.tree.labels_.shape) == 1:
             cluster_num = self.tree.labels_.max() + 1
             category, category_index = self.category_generation(cluster_num, y)
-            self.params['category_num'] = category_index
+            self.params["category_num"] = category_index
         else:
             category = self.tree.labels_
-            self.params['category_num'] = category.shape[1]
+            self.params["category_num"] = category.shape[1]
         # if isinstance(self.tree, DecisionTreeClassifier):
         #     print('loss', accuracy_score(y, self.tree.predict(X)), np.unique(self.tree.labels_).__len__())
         # if isinstance(self.tree, DecisionTreeRegressor):
@@ -1045,10 +1256,11 @@ class PSTreeRegressor(NormalizationRegressor):
     @predict_normalization
     def predict(self, X, y=None):
         if self.regr.adaptive_tree:
-            features = self.regr.feature_synthesis(X, self.regr.best_pop,
-                                                   original_features=self.regr.original_features)
-            if self.regr.original_features == 'original':
-                labels = get_labels(self.tree, features[:, :self.train_data.shape[1]])
+            features = self.regr.feature_synthesis(
+                X, self.regr.best_pop, original_features=self.regr.original_features
+            )
+            if self.regr.original_features == "original":
+                labels = get_labels(self.tree, features[:, : self.train_data.shape[1]])
             else:
                 labels = get_labels(self.tree, features, self.soft_tree)
         else:
@@ -1081,30 +1293,31 @@ class PSTreeRegressor(NormalizationRegressor):
         out = dict()
         for key in self._get_param_names():
             value = getattr(self, key, None)
-            if deep and hasattr(value, 'get_params') and not isinstance(value, type):
+            if deep and hasattr(value, "get_params") and not isinstance(value, type):
                 deep_items = value.get_params().items()
-                out.update((key + '__' + k, val) for k, val in deep_items)
+                out.update((key + "__" + k, val) for k, val in deep_items)
             out[key] = value
 
         params = out
-        params = {
-            **self.params,
-            **params
-        }
+        params = {**self.params, **params}
         return params
 
     def model(self, partition=0):
         features = []
         for id in range(self.regr.train_data.shape[1]):
-            features.append(parse_expr(f'X{id}'))
+            features.append(parse_expr(f"X{id}"))
         for p in self.regr.best_pop:
             features.append(parse_expr(gene_to_string(p)))
 
-        regr, feature_names = self, [f'X{id}' for id in range(self.regr.train_data.shape[1] + len(self.regr.best_pop))]
+        regr, feature_names = self, [
+            f"X{id}"
+            for id in range(self.regr.train_data.shape[1] + len(self.regr.best_pop))
+        ]
         tree_ = regr.tree.tree_
-        feature_name = [feature_names[i]
-                        if i != _tree.TREE_UNDEFINED else "undefined!"
-                        for i in tree_.feature]
+        feature_name = [
+            feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+            for i in tree_.feature
+        ]
 
         if regr.tree.tree_.node_count == 1:
             # single model
@@ -1116,16 +1329,16 @@ class PSTreeRegressor(NormalizationRegressor):
         def recurse(node):
             if tree_.feature[node] != _tree.TREE_UNDEFINED:
                 name = feature_name[node]
-                index = int(name.replace('X', ''))
+                index = int(name.replace("X", ""))
                 name = features[index]
                 threshold = tree_.threshold[node]
 
-                node_condition = f'({name} <= {threshold})'
+                node_condition = f"({name} <= {threshold})"
                 all_conditions.append(node_condition)
                 recurse(tree_.children_left[node])
                 all_conditions.pop(-1)
 
-                node_condition = f'({name} > {threshold})'
+                node_condition = f"({name} > {threshold})"
                 all_conditions.append(node_condition)
                 recurse(tree_.children_right[node])
                 all_conditions.pop(-1)
@@ -1140,7 +1353,7 @@ class PSTreeRegressor(NormalizationRegressor):
                         expr = tree_values[i] * ex1
                     else:
                         expr += tree_values[i] * ex1
-                condition = '&'.join(all_conditions)
+                condition = "&".join(all_conditions)
                 all_expressions.append((expr, parse_expr(condition)))
 
         recurse(0)
@@ -1148,7 +1361,14 @@ class PSTreeRegressor(NormalizationRegressor):
 
 
 class SequentialTreeGPRegressor(NormalizationRegressor):
-    def __init__(self, regr_class, min_samples_leaf=1, min_impurity_decrease=0, random_seed=0, **params):
+    def __init__(
+        self,
+        regr_class,
+        min_samples_leaf=1,
+        min_impurity_decrease=0,
+        random_seed=0,
+        **params,
+    ):
         super().__init__(**params)
         self.regr_class = regr_class
         self.min_samples_leaf = min_samples_leaf
@@ -1158,9 +1378,11 @@ class SequentialTreeGPRegressor(NormalizationRegressor):
 
     @train_normalization
     def fit(self, X: np.ndarray, y=None):
-        self.tree = DecisionTreeRegressor(min_samples_leaf=self.min_samples_leaf,
-                                          min_impurity_decrease=self.min_impurity_decrease,
-                                          random_state=self.random_seed)
+        self.tree = DecisionTreeRegressor(
+            min_samples_leaf=self.min_samples_leaf,
+            min_impurity_decrease=self.min_impurity_decrease,
+            random_state=self.random_seed,
+        )
         self.tree.fit(X, y)
         self.tree.labels_ = self.tree.apply(X)
         cluster_num = self.tree.labels_.max() + 1
@@ -1169,13 +1391,13 @@ class SequentialTreeGPRegressor(NormalizationRegressor):
         self.label_map = {}
         self.regr = []
 
-        if 'test_fun' in self.params and self.params['test_fun'] is not None:
-            test_fun = self.params['test_fun']
+        if "test_fun" in self.params and self.params["test_fun"] is not None:
+            test_fun = self.params["test_fun"]
             self.test_x = test_fun.x
             self.test_y = test_fun.y
             test_label = self.tree.apply(self.test_x)
 
-            train_test_fun = self.params['train_test_fun']
+            train_test_fun = self.params["train_test_fun"]
             self.train_x = train_test_fun.x
             self.train_y = train_test_fun.y
             train_label = self.tree.apply(self.train_x)
@@ -1184,23 +1406,33 @@ class SequentialTreeGPRegressor(NormalizationRegressor):
             if not np.any(self.tree.labels_ == i):
                 continue
 
-            if 'test_fun' in self.params and self.params['test_fun'] is not None:
-                test_fun = self.params['test_fun']
+            if "test_fun" in self.params and self.params["test_fun"] is not None:
+                test_fun = self.params["test_fun"]
                 test_fun.x = self.test_x[test_label == i]
                 test_fun.y = self.test_y[test_label == i]
-                self.params['test_fun'] = test_fun
+                self.params["test_fun"] = test_fun
 
-                train_test_fun = self.params['train_test_fun']
+                train_test_fun = self.params["train_test_fun"]
                 train_test_fun.x = self.train_x[train_label == i]
                 train_test_fun.y = self.train_y[train_label == i]
-                self.params['train_test_fun'] = train_test_fun
+                self.params["train_test_fun"] = train_test_fun
             self.label_map[i] = category_index
             category_index += 1
 
             regr = self.regr_class(category_num=1, **self.params)
             self.regr.append(regr)
-            regr.fit(X[self.tree.labels_ == i], y[self.tree.labels_ == i],
-                     np.zeros((np.sum(self.tree.labels_ == i, )), dtype=int))
+            regr.fit(
+                X[self.tree.labels_ == i],
+                y[self.tree.labels_ == i],
+                np.zeros(
+                    (
+                        np.sum(
+                            self.tree.labels_ == i,
+                        )
+                    ),
+                    dtype=int,
+                ),
+            )
         return self
 
     @predict_normalization
@@ -1216,8 +1448,9 @@ class SequentialTreeGPRegressor(NormalizationRegressor):
         y_predict = np.zeros((X.shape[0],))
         for i in range(len(self.regr)):
             if np.sum(labels == i) > 0:
-                y_predict[labels == i] = self.regr[i].predict(X[labels == i],
-                                                              category=np.zeros((np.sum(labels == i),), dtype=int))
+                y_predict[labels == i] = self.regr[i].predict(
+                    X[labels == i], category=np.zeros((np.sum(labels == i),), dtype=int)
+                )
         return y_predict
 
     def __deepcopy__(self, memodict={}):
@@ -1229,16 +1462,13 @@ class SequentialTreeGPRegressor(NormalizationRegressor):
         out = dict()
         for key in self._get_param_names():
             value = getattr(self, key, None)
-            if deep and hasattr(value, 'get_params') and not isinstance(value, type):
+            if deep and hasattr(value, "get_params") and not isinstance(value, type):
                 deep_items = value.get_params().items()
-                out.update((key + '__' + k, val) for k, val in deep_items)
+                out.update((key + "__" + k, val) for k, val in deep_items)
             out[key] = value
 
         params = out
-        params = {
-            **self.params,
-            **params
-        }
+        params = {**self.params, **params}
         return params
 
 
@@ -1298,14 +1528,15 @@ class LogDict:
 
 class PseudoPartition(BaseEstimator):
     def __init__(self, **param):
-        class zero: pass
+        class zero:
+            pass
 
         self.tree_ = zero()
         # this is because node count is the number of all nodes
         # no branch nodes exist in this tree
-        setattr(self.tree_, 'node_count', 1)
+        setattr(self.tree_, "node_count", 1)
         # there is only one leaf node in this pseudo tree
-        setattr(self.tree_, 'n_leaves', 1)
+        setattr(self.tree_, "n_leaves", 1)
 
     def fit(self, X, y=None):
         return np.zeros(len(X)).astype(np.int)
@@ -1394,7 +1625,9 @@ def selTournamentDCD(individuals, k):
         elif ind2.fitness.dominates(ind1.fitness):
             return ind2
 
-        if hasattr(ind1.fitness, 'crowding_dist') and hasattr(ind2.fitness, 'crowding_dist'):
+        if hasattr(ind1.fitness, "crowding_dist") and hasattr(
+            ind2.fitness, "crowding_dist"
+        ):
             if ind1.fitness.crowding_dist < ind2.fitness.crowding_dist:
                 return ind2
             elif ind1.fitness.crowding_dist > ind2.fitness.crowding_dist:
@@ -1419,15 +1652,16 @@ def automatically_determine_best_size(X, y, min_samples_leaf):
     low_score = -np.inf
     best_size = 0
     for size in {
-        'Auto': reversed([50, 100, 150, 200]),
-        'Auto-4': reversed([25, 50, 100, 500]),
-        'Auto-6': reversed([50, 75, 100, 125, 150, 200]),
-        'Auto-8': reversed([25, 50, 75, 100, 125, 150, 200, 500]),
+        "Auto": reversed([50, 100, 150, 200]),
+        "Auto-4": reversed([25, 50, 100, 500]),
+        "Auto-6": reversed([50, 75, 100, 125, 150, 200]),
+        "Auto-8": reversed([25, 50, 75, 100, 125, 150, 200, 500]),
     }[min_samples_leaf]:
         dt = PiecewisePolynomialTree(min_samples_leaf=size)
-        score = cross_validate(dt, X, y, scoring='neg_mean_squared_error', cv=5,
-                               return_train_score=True)
-        mean_score = np.mean(score['test_score'])
+        score = cross_validate(
+            dt, X, y, scoring="neg_mean_squared_error", cv=5, return_train_score=True
+        )
+        mean_score = np.mean(score["test_score"])
         if mean_score > low_score:
             # current score is better
             low_score = mean_score

@@ -7,7 +7,7 @@ from deap.gp import PrimitiveTree, compile, cxOnePoint, mutUniform
 from scipy.special import softmax
 
 
-class MultipleGeneGP():
+class MultipleGeneGP:
     def __init__(self, content, gene_num):
         self.gene = []
         self.gene_num = gene_num
@@ -55,7 +55,7 @@ def cxOnePoint_multiple_gene(ind1: MultipleGeneGP, ind2: MultipleGeneGP):
 
 def mutUniform_multiple_gene(individual: MultipleGeneGP, expr, pset):
     mutUniform(individual.random_select(), expr, pset)
-    return individual,
+    return (individual,)
 
 
 def cxOnePoint_multiple_gene_weight(ind1: MultipleGeneGP, ind2: MultipleGeneGP):
@@ -65,7 +65,7 @@ def cxOnePoint_multiple_gene_weight(ind1: MultipleGeneGP, ind2: MultipleGeneGP):
 
 def mutUniform_multiple_gene_weight(individual: MultipleGeneGP, expr, pset):
     mutUniform(individual.weight_select(), expr, pset)
-    return individual,
+    return (individual,)
 
 
 def cxOnePoint_multiple_gene_deterministic(ind1: MultipleGeneGP, ind2: MultipleGeneGP):
@@ -75,7 +75,7 @@ def cxOnePoint_multiple_gene_deterministic(ind1: MultipleGeneGP, ind2: MultipleG
 
 def mutUniform_multiple_gene_deterministic(individual: MultipleGeneGP, expr, pset):
     mutUniform(individual.deterministic_select(), expr, pset)
-    return individual,
+    return (individual,)
 
 
 def staticLimit_multiple_gene(key, max_value):

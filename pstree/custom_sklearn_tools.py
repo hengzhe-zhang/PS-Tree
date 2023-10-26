@@ -7,7 +7,7 @@ from sklearn.utils import safe_sqr
 from pstree.gp_function import max, min
 
 
-class LassoRidge():
+class LassoRidge:
     def __init__(self, lasso_model, ridge_model, *args, **kwargs):
         """
         Using Lasso to select useful variables, and using Ridge to fit the final model
@@ -18,16 +18,18 @@ class LassoRidge():
 
     def fit(self, X, y, sample_weight=None):
         pipe = Pipeline(
-            [("Selector", SelectFromModel(self.lasso_model, threshold=1e-20)),
-             ("Ridge", self.ridge_model)]
+            [
+                ("Selector", SelectFromModel(self.lasso_model, threshold=1e-20)),
+                ("Ridge", self.ridge_model),
+            ]
         )
         # pipe.fit(X, y, Selector__sample_weight=sample_weight, Ridge__sample_weight=sample_weight)
         pipe.fit(X, y, Ridge__sample_weight=sample_weight)
 
         feature = np.zeros(X.shape[1])
-        feature[pipe['Selector'].estimator_.coef_ != 0] = pipe['Ridge'].coef_
+        feature[pipe["Selector"].estimator_.coef_ != 0] = pipe["Ridge"].coef_
         self.coef_ = feature
-        self.intercept_ = pipe['Ridge'].intercept_
+        self.intercept_ = pipe["Ridge"].intercept_
         self.pipe = pipe
         return pipe
 
@@ -50,10 +52,12 @@ class RFERegressor(RFE):
 
         tags = self._get_tags()
         X, y = self._validate_data(
-            X, y, accept_sparse="csc",
+            X,
+            y,
+            accept_sparse="csc",
             ensure_min_features=2,
-            force_all_finite=not tags.get('allow_nan', True),
-            multi_output=True
+            force_all_finite=not tags.get("allow_nan", True),
+            multi_output=True,
         )
         # Initialization
         n_features = X.shape[1]
@@ -88,14 +92,16 @@ class RFERegressor(RFE):
             estimator.fit(X[:, features], y, sample_weight=self.sample_weight)
 
             # Get coefs
-            if hasattr(estimator, 'coef_'):
+            if hasattr(estimator, "coef_"):
                 coefs = estimator.coef_
             else:
-                coefs = getattr(estimator, 'feature_importances_', None)
+                coefs = getattr(estimator, "feature_importances_", None)
             if coefs is None:
-                raise RuntimeError('The classifier does not expose '
-                                   '"coef_" or "feature_importances_" '
-                                   'attributes')
+                raise RuntimeError(
+                    "The classifier does not expose "
+                    '"coef_" or "feature_importances_" '
+                    "attributes"
+                )
 
             # Get ranks
             if coefs.ndim > 1:
@@ -109,7 +115,9 @@ class RFERegressor(RFE):
             # Eliminate the worse features
             threshold = min(step, np.sum(support_) - n_features_to_select)
             # Eliminate useless features (ensure at least one feature is retained)
-            threshold = max(threshold, min(np.count_nonzero(coefs == 0), len(coefs) - 1))
+            threshold = max(
+                threshold, min(np.count_nonzero(coefs == 0), len(coefs) - 1)
+            )
 
             # Compute step score on the previous selection iteration
             # because 'estimator' must use features
