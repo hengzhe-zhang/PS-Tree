@@ -52,6 +52,7 @@ An example of usage:
                         basic_primitive='optimal', size_objective=True)
     r.fit(x_train, y_train)
     print(r2_score(y_test, r.predict(x_test)))
+    print(r.model())
 
 Experimental results on SRBench:
 
