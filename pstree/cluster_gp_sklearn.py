@@ -1347,12 +1347,15 @@ class PSTreeRegressor(NormalizationRegressor):
                 tree_values = tree_values / tree_values.sum()
                 # print(node)
                 expr = None
-                for i in range(len(regr.regr.pipelines)):
-                    ex1 = multigene_gp_to_string(i, regr.regr)
-                    if expr is None:
-                        expr = tree_values[i] * ex1
-                    else:
-                        expr += tree_values[i] * ex1
+                # Map tree class indices to pipeline indices via label_map (skips empty clusters)
+                for tree_class_idx in range(len(tree_values)):
+                    if tree_class_idx in regr.label_map:
+                        pipeline_idx = regr.label_map[tree_class_idx]
+                        ex1 = multigene_gp_to_string(pipeline_idx, regr.regr)
+                        if expr is None:
+                            expr = tree_values[tree_class_idx] * ex1
+                        else:
+                            expr += tree_values[tree_class_idx] * ex1
                 condition = "&".join(all_conditions)
                 all_expressions.append((expr, parse_expr(condition)))
 
