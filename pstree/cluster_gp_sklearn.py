@@ -1309,10 +1309,13 @@ class PSTreeRegressor(NormalizationRegressor):
         for p in self.regr.best_pop:
             features.append(parse_expr(gene_to_string(p)))
 
-        regr, feature_names = self, [
+        regr, feature_names = (
+            self,
+            [
                 f"X{id}"
                 for id in range(self.regr.train_data.shape[1] + len(self.regr.best_pop))
-        ]
+            ],
+        )
         tree_ = regr.tree.tree_
         feature_name = [
             feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
@@ -1348,7 +1351,9 @@ class PSTreeRegressor(NormalizationRegressor):
                 # print(node)
                 expr = None
                 for i in range(len(tree_values)):
-                    class_idx = regr.tree.classes_[i]  # Map tree index to actual pipeline index
+                    class_idx = int(
+                        regr.tree.classes_[i]
+                    )  # Map tree index to actual pipeline index
                     ex1 = multigene_gp_to_string(class_idx, regr.regr)
                     if expr is None:
                         expr = tree_values[i] * ex1
